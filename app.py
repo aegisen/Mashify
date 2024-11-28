@@ -135,9 +135,9 @@ class SongByGenre(db.Model):
 
 
 # setup spotify stuff
-SCOPE = "user-read-email playlist-read-private playlist-read-collaborative user-library-read"
-SPOITFY_CLIENT_ID = "73ab5349d4284b759c07843e5d202eff"
-SPOTIFY_CLIENT_SECRET = "6f02411e145b441dac805c627a2d90d4"
+SCOPE = "user-read-email user-read-private playlist-read-private playlist-read-collaborative user-library-read"
+SPOITFY_CLIENT_ID = "d511528d911b44e9a81863869ee60809"
+SPOTIFY_CLIENT_SECRET = "2b40cfddb1c74814a4092114c8ffc206"
 REDIRECT_URI = "http://127.0.0.1:3000"
 SHOW_DIALOG = True
 
@@ -243,16 +243,28 @@ def show_spotify_info():
     sp = Spotify(auth=session.get('token_info').get('access_token'))
     songs = {}
 
-    # try to get user's playlists, then add n stuff
-    try:
-        playlists = sp.current_user_playlists()["items"]
-        # put playlist info into database --- this can prob be turned into a function to be called later, along with info for other tables
 
-        # also try to put playlist info into database (if already exists, will go to except and pass on)
+    try: # try to get user playlists
+        # get user's playlists, then add n stuff
+        # loop to get all playlists, and bypass 50 limit
+        playlists = []
+        limit_step = 50
 
-        # iterate through lists of playlists
+        for offset in range(0, 1000, limit_step):
+            res = sp.current_user_playlists(limit=limit_step, offset=offset)
+            #print(res)
+            if len(res["items"]) == 0:
+                break
+            playlists.extend(res["items"])
+
+        # remove None items from playlists (Idk why they're none, smth changed w API?)
+        playlists = list(filter(lambda item: item is not None, playlists))
+
+        
+        # iterate through list of playlists
         for i in range(0, len(playlists)):
-            playlists[i]["table_id"] = i # assign int primary key bc it didn't want a string primary key
+
+            playlists[i]["table_id"] = i # assign int primary key bc it didn't want a string primary key; TODO: find a way to generate primary key later
 
             # get playlist info
             playlist_table_id = playlists[i]["table_id"]
@@ -271,8 +283,7 @@ def show_spotify_info():
                 #print("playlist already exists")
                 pass
 
-
-       
+        
             # get playlist songs
             results = sp.playlist_tracks(playlist_id)
             tracks = results["items"]
@@ -280,28 +291,28 @@ def show_spotify_info():
             while results["next"]:
                 results = sp.next(results)
                 tracks.extend(results["items"])
-            
+        
             # add playlist songs to songs list
 
-
             # iterate through songs in playlist
-            songs_in_playlist = [] # fill for each playlist
+            songs_in_playlist = [] # fill list of songs for each playlist
 
             for i in range(0, len(tracks)):
                 songs_in_playlist.append(tracks[i]["track"]["name"]) # add song name to list
-
-                item = tracks[i]["track"]
                 
-                track = tracks[i]["track"] # this track key actually contains the song info
-                track["table_id"] = i # temp key purposes, need to find way to gen later
-                #print(track["name"])
+                track = tracks[i]["track"] # the track key is what actually contains the song info
+                track["table_id"] = i # temp key purposes, TODO: need to find way to gen later
+
 
                 song_table_id = track["table_id"]
                 song_id = track["id"]
                 song_name = track["name"]
-                # duration = (track["duration_ms"])
-                # artists = [artist['name'] for artist in track['artists']]
-                # release_date = sp.track(song_id)['album']['release_date']
+                duration = (track["duration_ms"])
+                artists = [artist['name'] for artist in track['artists']]
+                print(artists) # for testing purposes
+
+                #release_date = sp.track(song_id)['album']['release_date'] # additional sp calls take a really long time?
+
                 #genres = track["genres"]
                 '''
                 artist_id = track['artists'][0]['id']
@@ -310,12 +321,16 @@ def show_spotify_info():
                 print(genres)
                 '''
 
+            #    print("checkpoint")
+
                 all_genres = []
                 for artist in track["artists"]:
                     artist_id = artist["id"]
-                    artist_info = sp.artist(artist_id)
-                    all_genres.extend(artist_info["genres"])
-                unique_genres = list(set(all_genres))
+            #        print("artist id: ", artist_id)
+                    #artist_info = sp.artist(artist_id)
+                    #all_genres.extend(artist_info["genres"])
+                    #print(all_genres)
+                #unique_genres = list(set(all_genres))
                 #print(unique_genres)
                 ''''
                 for genre_name in unique_genres:
@@ -340,7 +355,6 @@ def show_spotify_info():
                 # if song_by_playlist already exists, just pass
                 except:
                     #print("song_by_playlist already exists")
-                    #print("error")
                     pass
 
 
@@ -351,7 +365,7 @@ def show_spotify_info():
     # if no playlists found, just pass
     except:
         playlists = [{
-            "name": "error:",
+            "name": "something went wrong",
             "id": "no playlists found!"
         }]
         
