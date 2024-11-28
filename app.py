@@ -55,19 +55,26 @@ app.app_context().push()
 # models
 class Playlists(db.Model):
     playlist_table_id = db.Column(db.Integer, primary_key=True)
-    playlist_spotify_id = db.Column(db.String)
+    playlist_id = db.Column(db.String)
     playlist_name = db.Column(db.String)
 
-#    def __init__(self, playlist_id, playlist_name):
-#        self.playlist_id = playlist_id
-#        self.playlist_name = playlist_name
+    db.UniqueConstraint(playlist_id)
+
+
+    def __init__(self, playlist_id, playlist_name):
+        self.playlist_id = playlist_id
+        self.playlist_name = playlist_name
 
     def __repr__(self):
         return f"Playlist: ('{self.playlist_id}', '{self.playlist_name}')"
 
 class SongByPlaylist(db.Model):
-    song_id = db.Column(db.Integer, primary_key=True)
+    song_table_id = db.Column(db.Integer(), primary_key=True)
+    song_id = db.Column(db.String)
     playlist_id = db.Column(db.String, nullable=False) 
+
+    db.UniqueConstraint(song_id, playlist_id)
+
 
     def __init__(self, song_id, playlist_id):
         self.song_id = song_id
@@ -77,12 +84,14 @@ class SongByPlaylist(db.Model):
         return f"Song: ('{self.song_id}', '{self.playlist_id}')"
 
 class Song(db.Model):
-    song_id = db.Column(db.Integer(), primary_key=True)
-    song_name = db.Column(db.String(100), nullable=False)
+    song_table_id = db.Column(db.Integer(), primary_key=True)
+    song_id = db.Column(db.String, nullable=False)
+    song_name = db.Column(db.String, nullable=False)
     year = db.Column(db.Integer(), nullable=False)
     month = db.Column(db.Integer(), nullable=False)
     day = db.Column(db.Integer(), nullable=False)
 
+    db.UniqueConstraint(song_id)
     def __init__(self, song_id, song_name, year, month, day):
         self.song_id = song_id
         self.song_name = song_name
@@ -94,8 +103,11 @@ class Song(db.Model):
         return f"Song: ('{self.song_id}', '{self.song_name}')"
 
 class Artist(db.Model):
-    artist_id = db.Column(db.String(50), primary_key=True)
+    artist_table_id = db.Column(db.Integer(), primary_key=True)
+    artist_id = db.Column(db.String(50), nullable=False)
     artist_name = db.Column(db.String(100), nullable=False)
+
+    db.UniqueConstraint(artist_id)
 
     def __init__(self, artist_id, artist_name):
         self.artist_id = artist_id
@@ -105,8 +117,9 @@ class Artist(db.Model):
         return f"Song: ('{self.artist_id}', '{self.artist_name}')"
 
 class Genre(db.Model):
-    genre_id = db.Column(db.Integer,primary_key=True)
-    genre_name = db.Column(db.String(100),nullable=False,unique=True)
+    genre_table_id = db.Column(db.Integer(), primary_key=True)
+    genre_id = db.Column(db.String, nullable=False, unique=True)
+    genre_name = db.Column(db.String)
 
     def __init__(self,genre_id,genre_name):
         self.genre_id = genre_id
@@ -116,12 +129,11 @@ class Genre(db.Model):
         return f"Genre: ('{self.genre_id}',  '{self.genre_name}')"
 
 class SongByGenre(db.Model):
-    id = db.Column(db.Integer,primary_key = True)
-    song_id = db.Column(db.Integer,db.ForeignKey('song.song_id'),nullable=False)
-    genre_id = db.Column(db.Integer,db.ForeignKey('genre.genre_id'),nullable=False)
+    song_genre_table_id = db.Column(db.Integer, primary_key = True)
+    song_id = db.Column(db.String,db.ForeignKey('song.song_id'),nullable=False)
+    genre_id = db.Column(db.String,db.ForeignKey('genre.genre_id'),nullable=False)
 
     def __init__(self, id, song_id, genre_id):
-        self.id = id
         self.song_id = song_id
         self.genre_id = genre_id
 
@@ -264,15 +276,15 @@ def show_spotify_info():
         # iterate through list of playlists
         for i in range(0, len(playlists)):
 
-            playlists[i]["table_id"] = i # assign int primary key bc it didn't want a string primary key; TODO: find a way to generate primary key later
+            #playlists[i]["table_id"] = i # assign int primary key bc it didn't want a string primary key; TODO: find a way to generate primary key later
 
             # get playlist info
-            playlist_table_id = playlists[i]["table_id"]
+            #playlist_table_id = playlists[i]["id"]#playlists[i]["table_id"]
             playlist_id = playlists[i]["id"]
             playlist_name = playlists[i]["name"]
 
             # create playlist obj row using info
-            new_playlist = Playlists(playlist_table_id = playlist_table_id, playlist_spotify_id = playlist_id, playlist_name = playlist_name)
+            new_playlist = Playlists(playlist_id = playlist_id, playlist_name = playlist_name)
 
             # try to add playlist obj to db and commit
             try:
@@ -301,15 +313,14 @@ def show_spotify_info():
                 songs_in_playlist.append(tracks[i]["track"]["name"]) # add song name to list
                 
                 track = tracks[i]["track"] # the track key is what actually contains the song info
-                track["table_id"] = i # temp key purposes, TODO: need to find way to gen later
+                #track["table_id"] = i # temp key purposes, TODO: need to find way to gen later
 
 
-                song_table_id = track["table_id"]
+                #song_table_id = track["id"] #track["table_id"]
                 song_id = track["id"]
                 song_name = track["name"]
                 duration = (track["duration_ms"])
                 artists = [artist['name'] for artist in track['artists']]
-                print(artists) # for testing purposes
 
                 #release_date = sp.track(song_id)['album']['release_date'] # additional sp calls take a really long time?
 
@@ -348,7 +359,7 @@ def show_spotify_info():
                         pass
                 '''
                 # create song obj row using info
-                new_song_by_playlist = SongByPlaylist(song_id = song_table_id, playlist_id = playlist_table_id)
+                new_song_by_playlist = SongByPlaylist(song_id = song_id, playlist_id = playlist_id)
                 try:
                     db.session.add(new_song_by_playlist)
                     db.session.commit()
