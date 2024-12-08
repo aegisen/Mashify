@@ -44,7 +44,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 # database stuff
 
     # to set up database, do:
-    #   from app import app, db, Playlists, SongByPlaylist, Song, Artist
+    #   from app import app, db, Playlists, SongByPlaylist, Song, Artist, SongByArtist, Genre, ArtistByGenre
     #   db.create_all()
     # to clear database, do:
     # models.[TABLE TO CLEAR].query.delete()
@@ -58,7 +58,7 @@ class Playlists(db.Model):
     playlist_id = db.Column(db.String)
     playlist_name = db.Column(db.String)
 
-    db.UniqueConstraint(playlist_id)
+    #db.UniqueConstraint(playlist_id)
 
 
     def __init__(self, playlist_id, playlist_name):
@@ -73,7 +73,7 @@ class SongByPlaylist(db.Model):
     song_id = db.Column(db.String)
     playlist_id = db.Column(db.String, nullable=False) 
 
-    db.UniqueConstraint(song_id, playlist_id)
+    #db.UniqueConstraint(song_id, playlist_id)
 
 
     def __init__(self, song_id, playlist_id):
@@ -91,7 +91,7 @@ class Song(db.Model):
     month = db.Column(db.Integer(), nullable=False)
     day = db.Column(db.Integer(), nullable=False)
 
-    db.UniqueConstraint(song_id)
+    #db.UniqueConstraint(song_id)
     def __init__(self, song_id, song_name, year, month, day):
         self.song_id = song_id
         self.song_name = song_name
@@ -107,7 +107,7 @@ class Artist(db.Model):
     artist_id = db.Column(db.String(50), nullable=False)
     artist_name = db.Column(db.String(100), nullable=False)
 
-    db.UniqueConstraint(artist_id)
+    #db.UniqueConstraint(artist_id)
 
     def __init__(self, artist_id, artist_name):
         self.artist_id = artist_id
@@ -116,29 +116,56 @@ class Artist(db.Model):
     def __repr__(self):
         return f"Song: ('{self.artist_id}', '{self.artist_name}')"
 
+
+class SongByArtist(db.Model):
+    artist_song_table_id = db.Column(db.Integer, primary_key = True)
+    artist_id = db.Column(db.String,db.ForeignKey('song.song_id'),nullable=False)
+    song_id = db.Column(db.String,db.ForeignKey('artist.artist_id'),nullable=False)
+
+    def __init__(self, artist_id, song_id):
+        self.artist_id = artist_id
+        self.song_id = song_id
+
+    def __repr__(self):
+        return f"SongByArtist: ('{self.artist_id}','{self.genre_id}')"
+    
+
 class Genre(db.Model):
-    genre_table_id = db.Column(db.Integer(), primary_key=True)
-    genre_id = db.Column(db.String, nullable=False, unique=True)
+    genre_id = db.Column(db.Integer(), primary_key=True)
     genre_name = db.Column(db.String)
 
-    def __init__(self,genre_id,genre_name):
-        self.genre_id = genre_id
+    def __init__(self,genre_name):
         self.genre_name = genre_name
 
     def __repr__(self):
-        return f"Genre: ('{self.genre_id}',  '{self.genre_name}')"
+        return f"Genre: ('{self.genre_name}')"
 
-class SongByGenre(db.Model):
-    song_genre_table_id = db.Column(db.Integer, primary_key = True)
-    song_id = db.Column(db.String,db.ForeignKey('song.song_id'),nullable=False)
+
+class ArtistByGenre(db.Model):
+    artist_genre_table_id = db.Column(db.Integer, primary_key = True)
+    artist_id = db.Column(db.String,db.ForeignKey('artist.artist_id'),nullable=False)
     genre_id = db.Column(db.String,db.ForeignKey('genre.genre_id'),nullable=False)
 
-    def __init__(self, id, song_id, genre_id):
-        self.song_id = song_id
+    def __init__(self, artist_id, genre_id):
+        self.artist_id = artist_id
         self.genre_id = genre_id
 
     def __repr__(self):
-        return f"SongByGenre: ('{self.song_id}','{self.genre_id}')"
+        return f"ArtistByGenre: ('{self.artist_id}','{self.genre_id}')"
+
+
+# BELOW IS DEPRECATED; USE ARTISTBYGENRE INSTEAD
+# class SongByGenre(db.Model):
+#     song_genre_table_id = db.Column(db.Integer, primary_key = True)
+#     song_id = db.Column(db.String,db.ForeignKey('song.song_id'),nullable=False)
+#     genre_id = db.Column(db.String,db.ForeignKey('genre.genre_id'),nullable=False)
+
+#     def __init__(self, id, song_id, genre_id):
+#         self.song_id = song_id
+#         self.genre_id = genre_id
+
+#     def __repr__(self):
+#         return f"SongByGenre: ('{self.song_id}','{self.genre_id}')"
 
 
 # TODO: add Genre, SongByArtist, SongByGenre
@@ -256,129 +283,163 @@ def show_spotify_info():
     songs = {}
 
 
-    try: # try to get user playlists
+    #try: # try to get user playlists
         # get user's playlists, then add n stuff
         # loop to get all playlists, and bypass 50 limit
-        playlists = []
-        limit_step = 50
+    playlists = []
+    limit_step = 50
 
-        for offset in range(0, 1000, limit_step):
-            res = sp.current_user_playlists(limit=limit_step, offset=offset)
-            #print(res)
-            if len(res["items"]) == 0:
-                break
-            playlists.extend(res["items"])
+    for offset in range(0, 1000, limit_step):
+        res = sp.current_user_playlists(limit=limit_step, offset=offset)
+        #print(res)
+        if len(res["items"]) == 0:
+            break
+        playlists.extend(res["items"])
 
-        # remove None items from playlists (Idk why they're none, smth changed w API?)
-        playlists = list(filter(lambda item: item is not None, playlists))
+    # remove None items from playlists (Idk why they're none, smth changed w API?)
+    playlists = list(filter(lambda item: item is not None, playlists))
 
-        
-        # iterate through list of playlists
-        for i in range(0, len(playlists)):
+    
+    # iterate through list of playlists
+    for i in range(0, len(playlists)):
 
-            #playlists[i]["table_id"] = i # assign int primary key bc it didn't want a string primary key; TODO: find a way to generate primary key later
+        # get playlist info
+        playlist_id = playlists[i]["id"]
+        playlist_name = playlists[i]["name"]
 
-            # get playlist info
-            #playlist_table_id = playlists[i]["id"]#playlists[i]["table_id"]
-            playlist_id = playlists[i]["id"]
-            playlist_name = playlists[i]["name"]
+        # create playlist obj row using info
+        new_playlist = Playlists(playlist_id = playlist_id, playlist_name = playlist_name)
 
-            # create playlist obj row using info
-            new_playlist = Playlists(playlist_id = playlist_id, playlist_name = playlist_name)
+        # try to add playlist obj to db and commit
+        try:
+            db.session.add(new_playlist)
+            db.session.commit()
+        # if playlist already exists, just pass
+        except:
+            print("playlist already exists")
+            pass
 
-            # try to add playlist obj to db and commit
+    
+        # get playlist songs
+        results = sp.playlist_tracks(playlist_id)
+        tracks = results["items"]
+
+        while results["next"]:
+            results = sp.next(results)
+            tracks.extend(results["items"])
+    
+        # add playlist songs to songs list
+
+        # iterate through songs in playlist
+        songs_in_playlist = [] # fill list of songs for each playlist
+
+        for i in range(0, len(tracks)):
+            songs_in_playlist.append(tracks[i]["track"]["name"]) # add song name to list
+            
+            track = tracks[i]["track"] # the track key is what actually contains the song info
+
+            song_id = track["id"]
+            song_name = track["name"]
+            duration = (track["duration_ms"])
+            artists = [artist['name'] for artist in track['artists']]
+            release_date = sp.track(song_id)['album']['release_date'] # additional sp calls take a really long time?
+
+            ''''
+            for genre_name in unique_genres:
+                genre = Genre.query.filter_by(genre_name=genre_name).first()
+                if not genre:
+                    genre = Genre(genre_name=genre_name)
+                    db.session.add(genre)
+                    db.session.commit()
+                
+                song_genre_association = SongByGenre(song_id = song_table_id,genre_id = genre.genre_id)
+                try:
+                    db.session.add(song_genre_association)
+                    db.session.commit()
+                except:
+                    pass
+            '''
+
+
+        #---- ADDING STUFF TO DATABASE ----#
+            #  add to song table
+            new_song = Song(song_id = song_id, song_name = song_name, year = release_date[:4], month = release_date[5:7], day = release_date[8:10])
             try:
-                db.session.add(new_playlist)
+                print("song: ", new_song)
+                db.session.add(new_song)
                 db.session.commit()
-            # if playlist already exists, just pass
             except:
-                #print("playlist already exists")
+                print("\nsong already exists\n")
                 pass
 
-        
-            # get playlist songs
-            results = sp.playlist_tracks(playlist_id)
-            tracks = results["items"]
 
-            while results["next"]:
-                results = sp.next(results)
-                tracks.extend(results["items"])
-        
-            # add playlist songs to songs list
-
-            # iterate through songs in playlist
-            songs_in_playlist = [] # fill list of songs for each playlist
-
-            for i in range(0, len(tracks)):
-                songs_in_playlist.append(tracks[i]["track"]["name"]) # add song name to list
-                
-                track = tracks[i]["track"] # the track key is what actually contains the song info
-                #track["table_id"] = i # temp key purposes, TODO: need to find way to gen later
-
-
-                #song_table_id = track["id"] #track["table_id"]
-                song_id = track["id"]
-                song_name = track["name"]
-                duration = (track["duration_ms"])
-                artists = [artist['name'] for artist in track['artists']]
-
-                #release_date = sp.track(song_id)['album']['release_date'] # additional sp calls take a really long time?
-
-                #genres = track["genres"]
-                '''
-                artist_id = track['artists'][0]['id']
+            # add to songByPlaylist table
+            new_song_by_playlist = SongByPlaylist(song_id = song_id, playlist_id = playlist_id)
+            try:
+                print("song_by_playlist: ", new_song_by_playlist)
+                db.session.add(new_song_by_playlist)
+                db.session.commit()
+            except:  # if song_by_playlist already exists, just pass
+                print("\nsong_by_playlist already exists\n")
+                pass
+            
+            #---- ARTIST STUFF THAT REQUIRES ADDTL API CALLS ----#
+            # for artist, genre, artistByGenre
+            # get artist info first, for each artist in track
+            for artist in track["artists"]: # one song may have multiple artists
+                artist_id = artist["id"]
                 artist_info = sp.artist(artist_id)
-                genres = artist_info['genres']
-                print(genres)
-                '''
 
-            #    print("checkpoint")
+                artist_name = artist_info["name"]
+                artist_genres = artist_info["genres"] # may have multiple genres too
 
-                all_genres = []
-                for artist in track["artists"]:
-                    artist_id = artist["id"]
-            #        print("artist id: ", artist_id)
-                    #artist_info = sp.artist(artist_id)
-                    #all_genres.extend(artist_info["genres"])
-                    #print(all_genres)
-                #unique_genres = list(set(all_genres))
-                #print(unique_genres)
-                ''''
-                for genre_name in unique_genres:
-                    genre = Genre.query.filter_by(genre_name=genre_name).first()
-                    if not genre:
-                        genre = Genre(genre_name=genre_name)
-                        db.session.add(genre)
-                        db.session.commit()
-                    
-                    song_genre_association = SongByGenre(song_id = song_table_id,genre_id = genre.genre_id)
-                    try:
-                        db.session.add(song_genre_association)
-                        db.session.commit()
-                    except:
-                        pass
-                '''
-                # create song obj row using info
-                new_song_by_playlist = SongByPlaylist(song_id = song_id, playlist_id = playlist_id)
+                # add artist to artist table first
+                new_artist = Artist(artist_id = artist_id, artist_name = artist_name)
                 try:
-                    db.session.add(new_song_by_playlist)
+                    print("artist: ", new_artist)
+                    db.session.add(new_artist)
                     db.session.commit()
-                # if song_by_playlist already exists, just pass
                 except:
-                    #print("song_by_playlist already exists")
+                    print("\nartist already exists\n")
+                    pass
+            
+                # and add songByArtist
+                new_song_by_artist = SongByArtist(song_id = song_id, artist_id = artist_id)
+                try:
+                    db.session.add(new_song_by_artist)
+                    db.session.commit()
+                except:
+                    print("\nsong_by_artist already exists\n")
                     pass
 
 
-                # TODO: add stuff for genre, artist id later
-                #new_song = Song(song_id = song_table_id, song_name = song_name, year = release_date[:4], month = release_date[5:7], day = release_date[8:10])
-            songs[playlist_id] = songs_in_playlist
+                # add genre info
+                for genre in artist_genres:
+                    # put genre in genre table first
+                    newGenre = Genre(genre_name = genre)
+                    try:
+                        db.session.add(newGenre)
+                        db.session.commit()
+                    except:
+                        print("\ngenre already exists\n")
+                        pass
+
+                    #not sure how to handle artistByGenre yet...                       
+
+
+                
+            
+            # TODO: add stuff for genre, artist id later
+            #new_song = Song(song_id = song_table_id, song_name = song_name, year = release_date[:4], month = release_date[5:7], day = release_date[8:10])
+        songs[playlist_id] = songs_in_playlist
+        #db.session.commit()
 
     # if no playlists found, just pass
-    except:
-        playlists = [{
-            "name": "something went wrong",
-            "id": "no playlists found!"
-        }]
+    # except:
+    #     playlists = [{
+    #         "name": "something went wrong",
+    #         "id": "no playlists found!"
+    #     }]
         
 
 # this doesnt work==maybe bc it expects primary key to be an int
