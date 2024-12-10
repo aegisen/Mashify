@@ -175,7 +175,7 @@ class ArtistByGenre(db.Model):
 
 # setup spotify stuff
 SCOPE = "user-read-email user-read-private playlist-read-private playlist-read-collaborative user-library-read"
-SPOITFY_CLIENT_ID = "CLIENT_ID"
+SPOITFY_CLIENT_ID = "ID"
 SPOTIFY_CLIENT_SECRET = "SECRET"
 REDIRECT_URI = "http://127.0.0.1:3000"
 SHOW_DIALOG = True
@@ -334,6 +334,7 @@ def show_spotify_info():
         songs_in_playlist = [] # fill list of songs for each playlist
 
         for i in range(0, len(tracks)):
+            print("iteration:" + str(i))
             songs_in_playlist.append(tracks[i]["track"]["name"]) # add song name to list
             
             track = tracks[i]["track"] # the track key is what actually contains the song info
@@ -342,7 +343,7 @@ def show_spotify_info():
             song_name = track["name"]
             duration = (track["duration_ms"])
             artists = [artist['name'] for artist in track['artists']]
-            release_date = sp.track(song_id)['album']['release_date'] # additional sp calls take a really long time?
+            release_date = track['album']['release_date'] # additional sp calls take a really long time?
 
             ''''
             for genre_name in unique_genres:
@@ -376,7 +377,7 @@ def show_spotify_info():
             # add to songByPlaylist table
             new_song_by_playlist = SongByPlaylist(song_id = song_id, playlist_id = playlist_id)
             try:
-                print("song_by_playlist: ", new_song_by_playlist)
+                #print("song_by_playlist: ", new_song_by_playlist)
                 db.session.add(new_song_by_playlist)
                 db.session.commit()
             except:  # if song_by_playlist already exists, just pass
@@ -386,6 +387,7 @@ def show_spotify_info():
             #---- ARTIST STUFF THAT REQUIRES ADDTL API CALLS ----#
             # for artist, genre, artistByGenre
             # get artist info first, for each artist in track
+            print("hi there sir")
             for artist in track["artists"]: # one song may have multiple artists
                 artist_id = artist["id"]
                 artist_info = sp.artist(artist_id)
@@ -425,13 +427,13 @@ def show_spotify_info():
                         pass
 
                     #not sure how to handle artistByGenre yet...                       
-
+            print("hi there")
 
                 
             
             # TODO: add stuff for genre, artist id later
             #new_song = Song(song_id = song_table_id, song_name = song_name, year = release_date[:4], month = release_date[5:7], day = release_date[8:10])
-        songs[playlist_id] = songs_in_playlist
+        #songs[playlist_id] = songs_in_playlist
         #db.session.commit()
 
     # if no playlists found, just pass
