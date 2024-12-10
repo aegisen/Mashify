@@ -25,8 +25,6 @@ Steps required to run the program:
 
 8. If you encounter errors loading your data in to the database, try copying the localhost link and pasting directly into your web browser after completing the rest of the instructions
 
-## App.py
-Full documentation will be available soon
 
 ## Files Included
 - Link to [Project Proposal & Progress](https://drive.google.com/file/d/1_TW8LrLPcaAd9Z4jfYDBFQ_Xuh82uEou/view?usp=sharing)

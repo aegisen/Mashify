@@ -175,8 +175,8 @@ class ArtistByGenre(db.Model):
 
 # setup spotify stuff
 SCOPE = "user-read-email user-read-private playlist-read-private playlist-read-collaborative user-library-read"
-SPOITFY_CLIENT_ID = "CLIENT_ID"
-SPOTIFY_CLIENT_SECRET = "SECRET"
+SPOITFY_CLIENT_ID = "73ab5349d4284b759c07843e5d202eff"
+SPOTIFY_CLIENT_SECRET = "6f02411e145b441dac805c627a2d90d4"
 REDIRECT_URI = "http://127.0.0.1:3000"
 SHOW_DIALOG = True
 
