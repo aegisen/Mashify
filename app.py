@@ -16,6 +16,7 @@ from flask import (
 
 from flask_sqlalchemy import SQLAlchemy #need to install
 from sqlalchemy import Integer, String
+from sqlalchemy import exc
 from sqlalchemy.orm import Mapped, mapped_column
 
 from spotipy import Spotify, CacheHandler
@@ -44,7 +45,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 # database stuff
 
     # to set up database, do:
-    #   from app import app, db, Playlists, SongByPlaylist, Song, Artist, SongByArtist, Genre, ArtistByGenre
+    #   from app import app, db, User, Playlists, SongByPlaylist, Song, Artist, SongByArtist, Genre, ArtistByGenre
     #   db.create_all()
     # to clear database, do:
     # models.[TABLE TO CLEAR].query.delete()
@@ -53,27 +54,42 @@ db = SQLAlchemy(app)
 app.app_context().push()
 
 # models
+class User(db.Model):
+    user_table_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String)
+
+    db.UniqueConstraint(user_id)
+
+
+    def __init__(self, user_id):
+        self.user_id = user_id
+
+    def __repr__(self):
+        return f"User: ('{self.user_id}')"
+
 class Playlists(db.Model):
     playlist_table_id = db.Column(db.Integer, primary_key=True)
     playlist_id = db.Column(db.String)
     playlist_name = db.Column(db.String)
+    snapshot_id = db.Column(db.Integer)
 
-    #db.UniqueConstraint(playlist_id)
+    db.UniqueConstraint(playlist_id)
 
 
-    def __init__(self, playlist_id, playlist_name):
+    def __init__(self, playlist_id, playlist_name, snapshot_id):
         self.playlist_id = playlist_id
         self.playlist_name = playlist_name
+        self.snapshot_id = snapshot_id
 
     def __repr__(self):
-        return f"Playlist: ('{self.playlist_id}', '{self.playlist_name}')"
+        return f"Playlist: ('{self.playlist_id}', '{self.playlist_name}', '{self.snapshot_id}')"
 
 class SongByPlaylist(db.Model):
     song_table_id = db.Column(db.Integer(), primary_key=True)
     song_id = db.Column(db.String)
     playlist_id = db.Column(db.String, nullable=False) 
 
-    #db.UniqueConstraint(song_id, playlist_id)
+    db.UniqueConstraint(song_id, playlist_id)
 
 
     def __init__(self, song_id, playlist_id):
@@ -91,7 +107,8 @@ class Song(db.Model):
     month = db.Column(db.Integer(), nullable=False)
     day = db.Column(db.Integer(), nullable=False)
 
-    #db.UniqueConstraint(song_id)
+    db.UniqueConstraint(song_id)
+
     def __init__(self, song_id, song_name, year, month, day):
         self.song_id = song_id
         self.song_name = song_name
@@ -107,7 +124,7 @@ class Artist(db.Model):
     artist_id = db.Column(db.String(50), nullable=False)
     artist_name = db.Column(db.String(100), nullable=False)
 
-    #db.UniqueConstraint(artist_id)
+    db.UniqueConstraint(artist_id)
 
     def __init__(self, artist_id, artist_name):
         self.artist_id = artist_id
@@ -121,6 +138,8 @@ class SongByArtist(db.Model):
     artist_song_table_id = db.Column(db.Integer, primary_key = True)
     artist_id = db.Column(db.String,db.ForeignKey('song.song_id'),nullable=False)
     song_id = db.Column(db.String,db.ForeignKey('artist.artist_id'),nullable=False)
+    
+    db.UniqueConstraint(artist_id, song_id)
 
     def __init__(self, artist_id, song_id):
         self.artist_id = artist_id
@@ -134,6 +153,8 @@ class Genre(db.Model):
     genre_id = db.Column(db.Integer(), primary_key=True)
     genre_name = db.Column(db.String)
 
+    db.UniqueConstraint(genre_name)
+
     def __init__(self,genre_name):
         self.genre_name = genre_name
 
@@ -145,6 +166,8 @@ class ArtistByGenre(db.Model):
     artist_genre_table_id = db.Column(db.Integer, primary_key = True)
     artist_id = db.Column(db.String,db.ForeignKey('artist.artist_id'),nullable=False)
     genre_id = db.Column(db.String,db.ForeignKey('genre.genre_id'),nullable=False)
+
+    db.UniqueConstraint(artist_id, genre_id)
 
     def __init__(self, artist_id, genre_id):
         self.artist_id = artist_id
@@ -282,6 +305,22 @@ def show_spotify_info():
     sp = Spotify(auth=session.get('token_info').get('access_token'))
     songs = {}
 
+    # get user_id
+    user_info = sp.me()
+    user_id = user_info["id"]
+
+    new_user = User(user_id = user_id)
+        
+    try:
+        db.session.add(user_id)
+        db.session.commit()
+        
+    except exc.SQLAlchemyError as e:
+        db.session.rollback()
+        print(e)
+        pass
+        
+        
 
     #try: # try to get user playlists
         # get user's playlists, then add n stuff
@@ -299,24 +338,28 @@ def show_spotify_info():
     # remove None items from playlists (Idk why they're none, smth changed w API?)
     playlists = list(filter(lambda item: item is not None, playlists))
 
-    
     # iterate through list of playlists
     for i in range(0, len(playlists)):
 
         # get playlist info
         playlist_id = playlists[i]["id"]
         playlist_name = playlists[i]["name"]
+        playlist_snapshot_id = playlists[i]["snapshot_id"]
+
 
         # create playlist obj row using info
-        new_playlist = Playlists(playlist_id = playlist_id, playlist_name = playlist_name)
+        new_playlist = Playlists(playlist_id = playlist_id, playlist_name = playlist_name, snapshot_id = playlist_snapshot_id)
 
+        print(new_playlist)
         # try to add playlist obj to db and commit
+
         try:
             db.session.add(new_playlist)
             db.session.commit()
-        # if playlist already exists, just pass
-        except:
-            print("playlist already exists")
+         
+        except exc.SQLAlchemyError as e:
+            db.session.rollback()
+            print(e)
             pass
 
     
@@ -364,23 +407,28 @@ def show_spotify_info():
         #---- ADDING STUFF TO DATABASE ----#
             #  add to song table
             new_song = Song(song_id = song_id, song_name = song_name, year = release_date[:4], month = release_date[5:7], day = release_date[8:10])
+            
             try:
-                print("song: ", new_song)
                 db.session.add(new_song)
                 db.session.commit()
-            except:
-                print("\nsong already exists\n")
+                
+            except exc.SQLAlchemyError as e:
+                db.session.rollback()
+                print(e)
                 pass
+                    
 
 
             # add to songByPlaylist table
             new_song_by_playlist = SongByPlaylist(song_id = song_id, playlist_id = playlist_id)
+            
             try:
-                print("song_by_playlist: ", new_song_by_playlist)
                 db.session.add(new_song_by_playlist)
                 db.session.commit()
-            except:  # if song_by_playlist already exists, just pass
-                print("\nsong_by_playlist already exists\n")
+                
+            except exc.SQLAlchemyError as e:
+                db.session.rollback()
+                print(e)
                 pass
             
             #---- ARTIST STUFF THAT REQUIRES ADDTL API CALLS ----#
@@ -396,20 +444,24 @@ def show_spotify_info():
                 # add artist to artist table first
                 new_artist = Artist(artist_id = artist_id, artist_name = artist_name)
                 try:
-                    print("artist: ", new_artist)
                     db.session.add(new_artist)
                     db.session.commit()
-                except:
-                    print("\nartist already exists\n")
+                    
+                except exc.SQLAlchemyError as e:
+                    db.session.rollback()
+                    print(e)
                     pass
+            
             
                 # and add songByArtist
                 new_song_by_artist = SongByArtist(song_id = song_id, artist_id = artist_id)
                 try:
                     db.session.add(new_song_by_artist)
                     db.session.commit()
-                except:
-                    print("\nsong_by_artist already exists\n")
+                    
+                except exc.SQLAlchemyError as e:
+                    db.session.rollback()
+                    print(e)
                     pass
 
 
@@ -420,9 +472,12 @@ def show_spotify_info():
                     try:
                         db.session.add(newGenre)
                         db.session.commit()
-                    except:
-                        print("\ngenre already exists\n")
+                    
+                    except exc.SQLAlchemyError as e:
+                        db.session.rollback()
+                        print(e)
                         pass
+
 
                     #not sure how to handle artistByGenre yet...                       
 
