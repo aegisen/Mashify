@@ -175,8 +175,8 @@ class ArtistByGenre(db.Model):
 
 # setup spotify stuff
 SCOPE = "user-read-email user-read-private playlist-read-private playlist-read-collaborative user-library-read"
-SPOITFY_CLIENT_ID = "73ab5349d4284b759c07843e5d202eff"
-SPOTIFY_CLIENT_SECRET = "6f02411e145b441dac805c627a2d90d4"
+SPOITFY_CLIENT_ID = "d511528d911b44e9a81863869ee60809"
+SPOTIFY_CLIENT_SECRET = "2b40cfddb1c74814a4092114c8ffc206"
 REDIRECT_URI = "http://127.0.0.1:3000"
 SHOW_DIALOG = True
 
@@ -342,7 +342,7 @@ def show_spotify_info():
             song_name = track["name"]
             duration = (track["duration_ms"])
             artists = [artist['name'] for artist in track['artists']]
-            release_date = sp.track(song_id)['album']['release_date'] # additional sp calls take a really long time?
+            release_date = track['album']['release_date'] # additional sp calls take a really long time?
 
             ''''
             for genre_name in unique_genres:
