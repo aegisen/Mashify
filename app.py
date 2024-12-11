@@ -312,7 +312,7 @@ def show_spotify_info():
     new_user = User(user_id = user_id)
         
     try:
-        db.session.add(user_id)
+        db.session.add(new_user)
         db.session.commit()
         
     except exc.SQLAlchemyError as e:
@@ -482,29 +482,9 @@ def show_spotify_info():
                     #not sure how to handle artistByGenre yet...                       
 
 
-                
-            
             # TODO: add stuff for genre, artist id later
             #new_song = Song(song_id = song_table_id, song_name = song_name, year = release_date[:4], month = release_date[5:7], day = release_date[8:10])
         songs[playlist_id] = songs_in_playlist
-        #db.session.commit()
-
-    # if no playlists found, just pass
-    # except:
-    #     playlists = [{
-    #         "name": "something went wrong",
-    #         "id": "no playlists found!"
-    #     }]
-        
-
-# this doesnt work==maybe bc it expects primary key to be an int
-#    for playlist in playlists:
-#        playlist_id = playlist["id"]
-#        playlist_name = playlist["name"]
-
- #       new_playlist = Playlists(playlist_id=1, playlist_name="test")
- #       db.session.add(new_playlist)
- #       db.session.commit()
 
     #return render_template("spotify_info.html", spotify=sp)
     # random page to show playlists
