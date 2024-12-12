@@ -4,12 +4,12 @@
 <dl>
   {% for item in ps %}
     <dt>
-      <button class="toggle-btn" data-target="playlist-{{item['id']}}">
-      {{ item["name"] }}
+      <button class="toggle-btn" data-target="playlist-{{item.playlist_name}}">
+      {{ item.playlist_name }}
     </button>></dt>
-    <dd id="playlist-{{item['id']}}" class="hidden">
+    <dd id="playlist-{{item.playlist_name}}" class="hidden">
       <pre>
-        {% for song in sg[item["id"]] %}
+        {% for song in sg[item.playlist_name] %}
            <p>{{ song }}</p>
         {% endfor %}
       </pre>

@@ -21,6 +21,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from spotipy import Spotify, CacheHandler
 from spotipy.oauth2 import SpotifyOAuth
+from sqlalchemy import select
 
 class CacheSessionHandler(CacheHandler):
     def __init__(self, session, token_key):
@@ -71,18 +72,20 @@ class Playlists(db.Model):
     playlist_table_id = db.Column(db.Integer, primary_key=True)
     playlist_id = db.Column(db.String)
     playlist_name = db.Column(db.String)
-    snapshot_id = db.Column(db.Integer)
+    user_id = db.Column(db.String, db.ForeignKey('user.user_id'), nullable=False)
+    snapshot_id = db.Column(db.String)
 
     db.UniqueConstraint(playlist_id)
 
 
-    def __init__(self, playlist_id, playlist_name, snapshot_id):
+    def __init__(self, playlist_id, playlist_name, user_id, snapshot_id):
         self.playlist_id = playlist_id
         self.playlist_name = playlist_name
+        self.user_id = user_id
         self.snapshot_id = snapshot_id
 
     def __repr__(self):
-        return f"Playlist: ('{self.playlist_id}', '{self.playlist_name}', '{self.snapshot_id}')"
+        return f"Playlist: ('{self.playlist_id}', '{self.playlist_name}', '{self.snapshot_id}', '{self.user_id}')"
 
 class SongByPlaylist(db.Model):
     song_table_id = db.Column(db.Integer(), primary_key=True)
@@ -287,6 +290,42 @@ def get_token(session):
     return token_info, token_valid
 # end helper
 
+
+
+
+# HELPER FUNCTIONS TO GET SPOTIFY INFO
+
+def get_playlist_info(playlist):
+    # get playlist info
+    playlist_id = playlist["id"]
+    playlist_name = playlist["name"]
+    playlist_snapshot_id = playlist["snapshot_id"]
+
+    return playlist_id, playlist_name, playlist_snapshot_id
+
+
+def get_song_info(sp, song):
+    # for song, genre, songByGenre
+    song_id = song["id"]
+    song_name = song["name"]
+    duration = song["duration_ms"]
+    artists = [artist["name"] for artist in song["artists"]]
+    release_date = song["album"]["release_date"]
+
+    return song_id, song_name, duration, artists, release_date
+
+def get_artist_info(sp, track):
+    # for artist, genre, artistByGenre
+    # get artist info first, for each artist in track
+    for artist in track["artists"]: # one song may have multiple artists
+        artist_id = artist["id"]
+        artist_info = sp.artist(artist_id)
+
+        artist_name = artist_info["name"]
+        artist_genres = artist_info["genres"] # may have multiple genres too
+
+    return artist_id, artist_name, artist_genres
+
 # this is where we get spotify info
 @app.route("/spotify-info")
 def show_spotify_info():
@@ -310,21 +349,19 @@ def show_spotify_info():
     user_id = user_info["id"]
 
     new_user = User(user_id = user_id)
-        
     try:
         db.session.add(new_user)
         db.session.commit()
         
     except exc.SQLAlchemyError as e:
         db.session.rollback()
-        print(e)
-        pass
-        
+        #print(e)
+        pass   
         
 
-    #try: # try to get user playlists
-        # get user's playlists, then add n stuff
-        # loop to get all playlists, and bypass 50 limit
+    # try to get user playlists
+    #       get user's playlists, then add n stuff
+    #       loop to get all playlists, and bypass 50 limit
     playlists = []
     limit_step = 50
 
@@ -338,158 +375,299 @@ def show_spotify_info():
     # remove None items from playlists (Idk why they're none, smth changed w API?)
     playlists = list(filter(lambda item: item is not None, playlists))
 
-    # iterate through list of playlists
-    for i in range(0, len(playlists)):
+    # check db if user exists; if yes, check if playlists are up to date
+    exists = db.session.query(User.user_id).filter_by(user_id = user_id).first() is not None
+    if exists:
+        # get current db playlists
+        db_playlists = Playlists.query.filter_by(user_id = user_id).all()
+        db_playlist_ids = [playlist.playlist_id for playlist in db_playlists]
 
-        # get playlist info
-        playlist_id = playlists[i]["id"]
-        playlist_name = playlists[i]["name"]
-        playlist_snapshot_id = playlists[i]["snapshot_id"]
+        # get ids of playlists from spotify that are not in db
+        new_playlists = [playlist for playlist in playlists if playlist["id"] not in db_playlist_ids]
+        
 
-
-        # create playlist obj row using info
-        new_playlist = Playlists(playlist_id = playlist_id, playlist_name = playlist_name, snapshot_id = playlist_snapshot_id)
-
-        print(new_playlist)
-        # try to add playlist obj to db and commit
-
-        try:
-            db.session.add(new_playlist)
-            db.session.commit()
-         
-        except exc.SQLAlchemyError as e:
-            db.session.rollback()
-            print(e)
-            pass
-
+        # also get playlists with differing snapshot ids
+        for playlist in db_playlists:
+            for new_playlist in playlists:
+                if playlist.playlist_id == new_playlist["id"]:
+                    print(playlist.playlist_name, ": ", playlist.snapshot_id, " vs ", new_playlist["snapshot_id"])
+                    if playlist.snapshot_id != new_playlist["snapshot_id"]:
+                        new_playlists.append(new_playlist)
     
-        # get playlist songs
+    else: # if user doesn't exist, add all playlists
+        new_playlists = playlists
+
+                        
+    # for each new playlist, get info and add to db
+    for new_playlist in new_playlists:
+        songs_in_playlist = [] # temp
+        playlist_id, playlist_name, playlist_snapshot_id = get_playlist_info(new_playlist)
+        new_playlist_entry = Playlists(playlist_id = playlist_id, playlist_name = playlist_name, user_id = user_id, snapshot_id = playlist_snapshot_id)
+        
+        # add to db
+
+        # check if playlist already exists
+        exists = db.session.query(Playlists.playlist_id).filter_by(playlist_id = playlist_id).first() is not None
+        if exists:
+            # update if snapshot id is different
+            db_playlist = Playlists.query.filter_by(playlist_id = playlist_id).first()
+            if db_playlist.snapshot_id != playlist_snapshot_id:
+                db_playlist.snapshot_id = playlist_snapshot_id
+                db.session.commit()
+        else:
+            try:
+                db.session.add(new_playlist_entry)
+                db.session.commit()
+                
+            except exc.SQLAlchemyError as e:
+                db.session.rollback()
+                #print(e)
+                pass
+
+        # get songs from playlist
         results = sp.playlist_tracks(playlist_id)
         tracks = results["items"]
 
         while results["next"]:
             results = sp.next(results)
             tracks.extend(results["items"])
-    
-        # add playlist songs to songs list
+        
 
-        # iterate through songs in playlist
-        songs_in_playlist = [] # fill list of songs for each playlist
+        if len(tracks) == 0:
+            continue
 
         for i in range(0, len(tracks)):
-            songs_in_playlist.append(tracks[i]["track"]["name"]) # add song name to list
-            
-            track = tracks[i]["track"] # the track key is what actually contains the song info
+            songs_in_playlist.append(tracks[i]["track"]["name"]) # temp for page render purposes
+            track = tracks[i]["track"]
 
-            song_id = track["id"]
-            song_name = track["name"]
-            duration = (track["duration_ms"])
-            artists = [artist['name'] for artist in track['artists']]
-            release_date = track['album']['release_date'] # additional sp calls take a really long time?
+            # get song info
+            song_id, song_name, duration, artists, release_date = get_song_info(sp, track)
 
-            ''''
-            for genre_name in unique_genres:
-                genre = Genre.query.filter_by(genre_name=genre_name).first()
-                if not genre:
-                    genre = Genre(genre_name=genre_name)
-                    db.session.add(genre)
-                    db.session.commit()
-                
-                song_genre_association = SongByGenre(song_id = song_table_id,genre_id = genre.genre_id)
-                try:
-                    db.session.add(song_genre_association)
-                    db.session.commit()
-                except:
-                    pass
-            '''
-
-
-        #---- ADDING STUFF TO DATABASE ----#
-            #  add to song table
+            # add to song table in db
             new_song = Song(song_id = song_id, song_name = song_name, year = release_date[:4], month = release_date[5:7], day = release_date[8:10])
-            
             try:
                 db.session.add(new_song)
                 db.session.commit()
-                
             except exc.SQLAlchemyError as e:
                 db.session.rollback()
-                print(e)
+                ##print(e)
                 pass
-                    
 
-
-            # add to songByPlaylist table
+            # add to songByPlaylist table in db
             new_song_by_playlist = SongByPlaylist(song_id = song_id, playlist_id = playlist_id)
-            
             try:
                 db.session.add(new_song_by_playlist)
                 db.session.commit()
-                
             except exc.SQLAlchemyError as e:
                 db.session.rollback()
-                print(e)
+                ##print(e)
                 pass
-            
-            #---- ARTIST STUFF THAT REQUIRES ADDTL API CALLS ----#
-            # for artist, genre, artistByGenre
-            # get artist info first, for each artist in track
-            for artist in track["artists"]: # one song may have multiple artists
-                artist_id = artist["id"]
-                artist_info = sp.artist(artist_id)
 
-                artist_name = artist_info["name"]
-                artist_genres = artist_info["genres"] # may have multiple genres too
+            # get artist info
+            for artist in track["artists"]:
+                artist_id, artist_name, artist_genres = get_artist_info(sp, track)
 
-                # add artist to artist table first
+                # add to artist table in db
                 new_artist = Artist(artist_id = artist_id, artist_name = artist_name)
                 try:
                     db.session.add(new_artist)
                     db.session.commit()
-                    
                 except exc.SQLAlchemyError as e:
                     db.session.rollback()
-                    print(e)
+                    ##print(e)
                     pass
-            
-            
-                # and add songByArtist
+
+                # add to songByArtist table in db
                 new_song_by_artist = SongByArtist(song_id = song_id, artist_id = artist_id)
                 try:
                     db.session.add(new_song_by_artist)
                     db.session.commit()
-                    
                 except exc.SQLAlchemyError as e:
                     db.session.rollback()
-                    print(e)
+                    ##print(e)
                     pass
-
 
                 # add genre info
                 for genre in artist_genres:
-                    # put genre in genre table first
                     newGenre = Genre(genre_name = genre)
                     try:
                         db.session.add(newGenre)
                         db.session.commit()
-                    
                     except exc.SQLAlchemyError as e:
                         db.session.rollback()
-                        print(e)
+                        ##print(e)
                         pass
-
-
-                    #not sure how to handle artistByGenre yet...                       
-
-
-            # TODO: add stuff for genre, artist id later
-            #new_song = Song(song_id = song_table_id, song_name = song_name, year = release_date[:4], month = release_date[5:7], day = release_date[8:10])
+                #not sure how to handle artistByGenre yet...
         songs[playlist_id] = songs_in_playlist
+        
+            
 
-    #return render_template("spotify_info.html", spotify=sp)
-    # random page to show playlists
 
-    return render_template("spotify_info.html", ps=playlists, sg = songs)
+        
+
+    # # iterate through list of playlists
+    # for i in range(0, len(playlists)):
+
+    #     # get playlist info
+    #     playlist_id = playlists[i]["id"]
+    #     playlist_name = playlists[i]["name"]
+    #     playlist_snapshot_id = playlists[i]["snapshot_id"]
+
+
+    #     # create playlist obj row using info
+    #     new_playlist = Playlists(playlist_id = playlist_id, playlist_name = playlist_name, snapshot_id = playlist_snapshot_id)
+
+    #     print(new_playlist)
+    #     # try to add playlist obj to db and commit
+
+    #     try:
+    #         db.session.add(new_playlist)
+    #         db.session.commit()
+         
+    #     except exc.SQLAlchemyError as e:
+    #         db.session.rollback()
+    #         ##print(e)
+    #         pass
+
+    
+    #     # get playlist songs
+    #     results = sp.playlist_tracks(playlist_id)
+    #     tracks = results["items"]
+
+    #     while results["next"]:
+    #         results = sp.next(results)
+    #         tracks.extend(results["items"])
+    #     # add playlist songs to songs list
+
+    #     # iterate through songs in playlist
+    #     songs_in_playlist = [] # fill list of songs for each playlist
+
+    #     for i in range(0, len(tracks)):
+    #         songs_in_playlist.append(tracks[i]["track"]["name"]) # add song name to list
+            
+    #         track = tracks[i]["track"] # the track key is what actually contains the song info
+
+    #         song_id = track["id"]
+    #         song_name = track["name"]
+    #         duration = (track["duration_ms"])
+    #         artists = [artist['name'] for artist in track['artists']]
+    #         release_date = track['album']['release_date'] # additional sp calls take a really long time?
+
+    #         ''''
+    #         for genre_name in unique_genres:
+    #             genre = Genre.query.filter_by(genre_name=genre_name).first()
+    #             if not genre:
+    #                 genre = Genre(genre_name=genre_name)
+    #                 db.session.add(genre)
+    #                 db.session.commit()
+                
+    #             song_genre_association = SongByGenre(song_id = song_table_id,genre_id = genre.genre_id)
+    #             try:
+    #                 db.session.add(song_genre_association)
+    #                 db.session.commit()
+    #             except:
+    #                 pass
+    #         '''
+
+
+    #     #---- ADDING STUFF TO DATABASE ----#
+    #         #  add to song table
+    #         new_song = Song(song_id = song_id, song_name = song_name, year = release_date[:4], month = release_date[5:7], day = release_date[8:10])
+            
+    #         try:
+    #             db.session.add(new_song)
+    #             db.session.commit()
+                
+    #         except exc.SQLAlchemyError as e:
+    #             db.session.rollback()
+    #             ##print(e)
+    #             pass
+                    
+
+
+    #         # add to songByPlaylist table
+    #         new_song_by_playlist = SongByPlaylist(song_id = song_id, playlist_id = playlist_id)
+            
+    #         try:
+    #             db.session.add(new_song_by_playlist)
+    #             db.session.commit()
+                
+    #         except exc.SQLAlchemyError as e:
+    #             db.session.rollback()
+    #             ##print(e)
+    #             pass
+            
+    #         #---- ARTIST STUFF THAT REQUIRES ADDTL API CALLS ----#
+    #         # for artist, genre, artistByGenre
+    #         # get artist info first, for each artist in track
+    #         for artist in track["artists"]: # one song may have multiple artists
+    #             artist_id = artist["id"]
+    #             artist_info = sp.artist(artist_id)
+
+    #             artist_name = artist_info["name"]
+    #             artist_genres = artist_info["genres"] # may have multiple genres too
+
+    #             # add artist to artist table first
+    #             new_artist = Artist(artist_id = artist_id, artist_name = artist_name)
+    #             try:
+    #                 db.session.add(new_artist)
+    #                 db.session.commit()
+                    
+    #             except exc.SQLAlchemyError as e:
+    #                 db.session.rollback()
+    #                 ##print(e)
+    #                 pass
+            
+            
+    #             # and add songByArtist
+    #             new_song_by_artist = SongByArtist(song_id = song_id, artist_id = artist_id)
+    #             try:
+    #                 db.session.add(new_song_by_artist)
+    #                 db.session.commit()
+                    
+    #             except exc.SQLAlchemyError as e:
+    #                 db.session.rollback()
+    #                 #print(e)
+    #                 pass
+
+
+    #             # add genre info
+    #             for genre in artist_genres:
+    #                 # put genre in genre table first
+    #                 newGenre = Genre(genre_name = genre)
+    #                 try:
+    #                     db.session.add(newGenre)
+    #                     db.session.commit()
+                    
+    #                 except exc.SQLAlchemyError as e:
+    #                     db.session.rollback()
+    #                     #print(e)
+    #                     pass
+
+
+    #                 #not sure how to handle artistByGenre yet...                       
+
+
+    #         # TODO: add stuff for genre, artist id later
+    #         #new_song = Song(song_id = song_table_id, song_name = song_name, year = release_date[:4], month = release_date[5:7], day = release_date[8:10])
+    #     songs[playlist_id] = songs_in_playlist
+
+    # #return render_template("spotify_info.html", spotify=sp)
+    # # random page to show playlists
+
+    # get info from db to display
+    # create dictionary of playlists and songs
+
+    # fetch playlists names, playlist ids from db
+    playlists = Playlists.query.filter_by(user_id = user_id).all()
+    songs_by_playlist = db.session.query(SongByPlaylist, Song).join(Song, Song.song_id == SongByPlaylist.song_id).all()
+
+    playlist_dict = {}
+    for playlist in playlists:
+        playlist_dict[playlist.playlist_name] = [song.song_name for song_by_playlist, song in songs_by_playlist if song_by_playlist.playlist_id == playlist.playlist_id]
+
+    print(playlist_dict)
+    return render_template("spotify_info.html", ps=playlists, sg = playlist_dict)
     
 
 
