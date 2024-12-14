@@ -20,7 +20,7 @@ input{
   outline: none;
   border: none;
   color: #b4b8ba;
-  background: rgba(220, 220, 224, 0.05);
+  background: rgb(7, 97, 29);
   font-size: 12px;
   border: 1px solid rgba(79, 79, 80, 0.07);
 }
@@ -36,24 +36,33 @@ input{
 
 /* general stuff */
 html {
-    background-color: #1a1a21 !important;
+    background-color: #171717 !important;
     margin: 2em;
+}
+
+h1 {
+  color: #1db954;
+  font-family: monospace;
+  /*display: flex; */
+  text-align: center;
+  padding-top: 1em;
+  size: 30px;
 }
 
 body {
     /*margin-right: 6rem;
     margin-left: 6rem;*/
 
-    color: #cad4da;
+    color: #1db954;
     font-family: monospace;
     /*display: flex; */
     text-align: center;
     padding-top: 1em;
-    size: 10px;
+    size: 14px;
 }
 
 p {
-    font-size: 8px;
+    font-size: 12px;
     margin: 0;
     color: #cad4da;
     text-align: center;
@@ -75,20 +84,45 @@ p {
 }
 
 .container {
-  display: grid;
-  align-items: center; 
-  grid-template-columns: 1fr 1fr 1fr;
-  column-gap: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  /* grid-template-columns: 1fr 1fr 1fr; */
+  width: 100%
   }
   
   td, th {
-  font-size: smaller;
+  font-size: large;
   border: 1px solid #9eaaaa;
-  text-align: center;
+  text-align: match-parent;
   padding: 12px;
   }
   
   
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+ }
+
+.spread-btn {
+  padding: 10px 15px;
+  background-color: rgb(7, 97, 29);
+  color: #b4b8ba;
+  border: none;
+  border-radius: 5px;
+  font-family: monospace;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.spread-btn:hover {
+  background-color: #1db954;
+  color: #fff;
+}
+
+
   
   
   a {
@@ -118,4 +152,5 @@ p {
       margin-bottom: 0.5em;
     }
     
-    dt { font-weight: bold; border-top: 1px solid rgb(116, 115, 122);}
+    dt { font-weight: lighter; border-top: 1px dashed rgb(116, 115, 122); font-size: 20px;}
+
