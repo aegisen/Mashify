@@ -1,12 +1,17 @@
 {% extends 'base.html' %}
 
+
 {% block body %}
+<h1>{% block header %} Let's make some new playlists based on your old favorites {% endblock header %}</h1>
+<body> The boxes beneath will allow you to view the songs within your songs by playlist, by artist, and by genre. </br>
+  Select your favorites, or select entire boxes to generate a playlist of your choosing! </body>
 <dl>
   {% for item in ps %}
     <dt>
+      <p>Playlist Name:</p>
       <button class="toggle-btn" data-target="playlist-{{item.playlist_name}}">
       {{ item.playlist_name }}
-    </button>></dt>
+    </button></dt>
     <dd id="playlist-{{item.playlist_name}}" class="hidden">
       <pre>
         {% for song in sg[item.playlist_name] %}
@@ -16,6 +21,23 @@
     </dd>
   {% endfor %}
 </dl>
+
+<!-- <dl>
+  {% for item in ar %}
+    <dt>
+      <button class="toggle-btn" data-target="artist-{{item.artist_name}}">
+      {{ item.artist_name }}
+    </button>></dt>
+    <dd id="artist-{{item.artist_name}}" class="hidden">
+      <pre>
+        {% for song in ad[item.artist_name] %}
+           <p>{{ song }}</p>
+        {% endfor %}
+      </pre>
+    </dd>
+  {% endfor %}
+</dl> -->
+
 <script>
   document.addEventListener('DOMContentLoaded',() =>{
     const toggleButtons = document.querySelectorAll('.toggle-btn');

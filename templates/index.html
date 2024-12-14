@@ -1,5 +1,11 @@
 {% extends 'base.html' %}
 
+
 {% block body %}
+<h1>{% block head %}Welcome to Mashify!{% endblock head %}</h1>
+
+</br>
+<body>Log in below to start the playlist creation process</br></br>
+    Note: Large user libraries may take a while to load!</br></br></body>
 <a href="{{ spotify_auth_url }}">Login with Spotify</a>
 {% endblock body %}
