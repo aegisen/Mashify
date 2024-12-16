@@ -27,7 +27,7 @@ input{
 
 
 .not-found{
-  color: #3698c9;
+  color: #36c94f;
 }
 
 
@@ -75,6 +75,75 @@ p {
   margin: 10px 0;
 } */
 
+.filter-button {
+  appearance: none;
+  background-color: #0c0e0c28;
+  border: 2px solid #1a1a1a;
+  border-radius: 15px;
+  box-sizing: border-box;
+  color: #abb4ab;
+  cursor: pointer;
+  font-family: monospace;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: normal;
+  margin-top: 16px;
+  outline: none;
+  padding: 16px 24px;
+  text-align: center;
+  text-decoration: none;
+  transition: all 300ms cubic-bezier(.23, 1, 0.32, 1);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  will-change: transform;
+}
+
+.filter-button:disabled {
+  pointer-events: none;
+}
+
+.filter-button:hover {
+  color: #e0e4e0;
+  background-color: #1b1c1b;
+  box-shadow: rgba(0, 0, 0, 0.25) 0 8px 15px;
+  transform: translateY(-2px);
+}
+
+.filter-button:active {
+  box-shadow: none;
+  transform: translateY(0);
+}
+
+button {
+  padding: 5px 10px;
+  background-color: rgb(19, 57, 29);
+  color: #b4b8ba;
+  border: none;
+  border-radius: 5px;
+  font-family: monospace;
+  font-size: 14px;
+  cursor: pointer;
+  margin: 0.5em;
+}
+
+.toggle-btn {
+  padding: 10px 15px;
+  background-color: #1a5a1f75;
+  color: #9eafaa;
+  border: #c0ceca5e;
+  border-radius: 5px;
+  font-family: monospace;
+  font-size: 12px;
+  cursor: pointer;
+  margin: 1em;
+}
+
+.toggle-btn:hover {
+  color: #e0e4e0;
+  background-color: #1a581f65;
+  box-shadow: rgba(0, 0, 0, 0.25) 0 8px 15px;
+}
 
 .close {
   float: right;
@@ -93,7 +162,7 @@ p {
   
   td, th {
   font-size: large;
-  border: 1px solid #9eaaaa;
+  border: 1px solid #5b655e69;
   text-align: match-parent;
   padding: 12px;
   }
@@ -126,7 +195,7 @@ p {
   
   
   a {
-    color: #3698c9;
+    color: #36c95b;
     font-weight: bold;
     -o-transition:color .2s ease-out, background 1s ease-in;
     -ms-transition:color .2s ease-out, background 1s ease-in;
@@ -135,12 +204,12 @@ p {
     transition:color .2s ease-out, background 1s ease-in;
   }
   a:hover{ 
-    color:#4759b3; background: #14141a; }
+    color:#289b45; background: #14141a; }
   
   
   ::selection {
     color: #edeef0;
-    background: rgb(14, 155, 171);
+    background: rgb(85, 189, 75);
   }
   
 
@@ -152,5 +221,5 @@ p {
       margin-bottom: 0.5em;
     }
     
-    dt { font-weight: lighter; border-top: 1px dashed rgb(116, 115, 122); font-size: 20px;}
+    dt { font-weight: lighter; border-top: 1px dashed rgba(108, 112, 108, 0.474); font-size: 20px;}
 
