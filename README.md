@@ -18,9 +18,8 @@ Steps required to run the program:
 3. Install libraries:
     1.  `!pip install flask` or `pip3 install flask`
     2.  `!pip install spotipy` or `pip3 install spotipy`
-4. Set up virtual environment using flask: `python -m venv C:\path\to\new\virtual\environment flask`
-5. `flask --app app run --debug --port 3000`
-6. Copy http url and paste into web browser
+4. `flask --app app run --debug --port 3000`
+5. Copy http url and paste into web browser
 
 
 ## Files Included
