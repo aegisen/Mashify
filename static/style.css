@@ -53,7 +53,7 @@ body {
     /*margin-right: 6rem;
     margin-left: 6rem;*/
 
-    color: #1db954;
+    color: #14883c;
     font-family: monospace;
     /*display: flex; */
     text-align: center;
@@ -130,7 +130,7 @@ button {
 .toggle-btn {
   padding: 10px 15px;
   background-color: #1a5a1f75;
-  color: #9eafaa;
+  color: #82998e;
   border: #c0ceca5e;
   border-radius: 5px;
   font-family: monospace;
@@ -209,7 +209,7 @@ button {
   
   ::selection {
     color: #edeef0;
-    background: rgb(85, 189, 75);
+    background: rgb(19, 68, 47);
   }
   
 

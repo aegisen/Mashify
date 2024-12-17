@@ -585,7 +585,42 @@ def show_spotify_info_by_genre():
     return render_template("spotify_genre_info.html", gn=list(genre_dict.keys()), sg=genre_dict)
 
 
+@app.route("/spotify-info/artist")
+def show_spotify_info_by_artist():
+    # if somehow didn't grab user token, redirect to login
+    if not oauth_manager.validate_token(oauth_manager.get_cached_token()):
+        return redirect("/")
 
+    # set our session info
+    session['token_info'], authorized = get_token(session)
+    session.modified = True
+    if not authorized:
+        return redirect('/')
+
+    # setup spotify object so we can get our data
+    sp = Spotify(auth=session.get('token_info').get('access_token'))
+    
+    user_id = sp.me()["id"]
+
+    # Query all playlists from the current user
+    playlists = Playlists.query.filter_by(user_id=user_id).all()
+    playlist_ids = [playlist.playlist_id for playlist in playlists]
+
+    # Join with SongByPlaylist where playlist ID matches
+    songs_by_playlist = db.session.query(SongByPlaylist, Song, Artist).join(
+        Song, Song.song_id == SongByPlaylist.song_id).join(
+        SongByArtist, Song.song_id == SongByArtist.song_id).join(
+        Artist, Artist.artist_id == SongByArtist.artist_id).filter(
+        SongByPlaylist.playlist_id.in_(playlist_ids)).all()
+
+    # Create a dictionary with artist names as keys and lists of song names as values
+    artist_dict = {}
+    for song_by_playlist, song, artist in songs_by_playlist:
+        if artist.artist_name not in artist_dict:
+            artist_dict[artist.artist_name] = []
+        artist_dict[artist.artist_name].append(song.song_name)
+
+    return render_template("spotify_artist_info.html", ar=list(artist_dict.keys()), ad=artist_dict)
 
 if __name__ == "__main__":
     app.run(debug=True, use_reloader=True, use_debugger=True)

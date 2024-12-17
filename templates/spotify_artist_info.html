@@ -13,15 +13,15 @@
 </div>
 
 <dl>
-  {% for playlist in ps %}
+  {% for artist in ar %}
     <dt>
       <p></p>
-      <button class="toggle-btn" data-target="playlist-{{playlist.playlist_name}}">
-      {{ playlist.playlist_name }}
+      <button class="toggle-btn" data-target="artist-{{artist}}">
+      {{ artist }}
     </button></dt>
-    <dd id="playlist-{{playlist.playlist_name}}" class="hidden">
+    <dd id="artist-{{artist}}" class="hidden">
       <pre>
-        {% for song in sg[playlist.playlist_name] %}
+        {% for song in ad[artist] %}
            <p>{{ song }}</p>
         {% endfor %}
       </pre>
@@ -55,19 +55,3 @@
 </style>
 
 {% endblock body %}
-
-<!-- <dl>
-  {% for item in ar %}
-    <dt>
-      <button class="toggle-btn" data-target="artist-{{item.artist_name}}">
-      {{ item.artist_name }}
-    </button>></dt>
-    <dd id="artist-{{item.artist_name}}" class="hidden">
-      <pre>
-        {% for song in ad[item.artist_name] %}
-           <p>{{ song }}</p>
-        {% endfor %}
-      </pre>
-    </dd>
-  {% endfor %}
-</dl> -->
