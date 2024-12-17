@@ -16,12 +16,14 @@
   {% for playlist in ps %}
     <dt>
       <p></p>
-      <button class="toggle-btn" data-target="playlist-{{playlist.playlist_name}}">
-      {{ playlist.playlist_name }}
-    </button></dt>
-    <dd id="playlist-{{playlist.playlist_name}}" class="hidden">
+      <button class="toggle-btn" data-target="playlist-{{playlist}}">
+      {{ playlist }}
+    </button>
+    <button class="create-playlist-btn" onclick="createPlaylist('{{ playlist }}')">Create Playlist</button>
+  </dt>
+    <dd id="playlist-{{playlist}}" class="hidden">
       <pre>
-        {% for song in sg[playlist.playlist_name] %}
+        {% for song in (sg[playlist].values()) %}
            <p>{{ song }}</p>
         {% endfor %}
       </pre>
@@ -30,6 +32,8 @@
 </dl>
 
 <script>
+  var songs = {{ sg | safe}}; //to get the dictionary of songs by playlist
+
   document.addEventListener('DOMContentLoaded',() =>{
     const toggleButtons = document.querySelectorAll('.toggle-btn');
 
@@ -46,6 +50,27 @@
       });
     });
   });
+
+  //name of playlist will be playlist name
+  function createPlaylist(playlistName) {
+    var songsByGenre = songs[playlistName]; //get songs by specific playlist
+    const trackIDs = Object.keys(songsByGenre); //get track IDs to create playlist with
+
+    fetch(`/create-playlist/${playlistName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ track_ids: trackIDs }), //send track IDs to create playlist
+      }).then(response => {
+      if (response.ok) {
+        alert(`Playlist '${playlistName}' created successfully!`);
+      } else {
+        alert(`Failed to create playlist '${playlistName}'.`);
+      }
+    });
+  }
+
 </script>
 
 <style>
@@ -55,19 +80,3 @@
 </style>
 
 {% endblock body %}
-
-<!-- <dl>
-  {% for item in ar %}
-    <dt>
-      <button class="toggle-btn" data-target="artist-{{item.artist_name}}">
-      {{ item.artist_name }}
-    </button>></dt>
-    <dd id="artist-{{item.artist_name}}" class="hidden">
-      <pre>
-        {% for song in ad[item.artist_name] %}
-           <p>{{ song }}</p>
-        {% endfor %}
-      </pre>
-    </dd>
-  {% endfor %}
-</dl> -->

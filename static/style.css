@@ -74,6 +74,17 @@ p {
 /* .modal-content label, .modal-content input, .modal-content button {
   margin: 10px 0;
 } */
+button {
+  padding: 5px 10px;
+  background-color: #13391d;
+  color: #b4b8ba;
+  border: none;
+  border-radius: 5px;
+  font-family: monospace;
+  font-size: 14px;
+  cursor: pointer;
+  margin: 0.5em;
+}
 
 .filter-button {
   appearance: none;
@@ -115,23 +126,31 @@ p {
   transform: translateY(0);
 }
 
-button {
-  padding: 5px 10px;
-  background-color: rgb(19, 57, 29);
-  color: #b4b8ba;
-  border: none;
+
+.toggle-btn {
+  padding: 8px 12px;
+  background-color: #193520;
+  color: #a4b5ad;
+  border: #c0ceca5e;
   border-radius: 5px;
   font-family: monospace;
   font-size: 14px;
   cursor: pointer;
-  margin: 0.5em;
+  margin: 1em;
 }
 
-.toggle-btn {
-  padding: 10px 15px;
-  background-color: #1a5a1f75;
-  color: #82998e;
-  border: #c0ceca5e;
+.toggle-btn:hover {
+  color: #e0e4e0;
+  background-color: rgb(20, 44, 26);
+  box-shadow: rgba(0, 0, 0, 0.15) 0 8px 15px;
+}
+
+.create-playlist-btn {
+  padding: 8px 12px;
+  background-color: #3e3f3e52;
+  color: #adb6b2;
+  border: #dfe4e35e;
+  border-width: 2px;
   border-radius: 5px;
   font-family: monospace;
   font-size: 12px;
@@ -139,11 +158,12 @@ button {
   margin: 1em;
 }
 
-.toggle-btn:hover {
+.create-playlist-btn:hover {
   color: #e0e4e0;
-  background-color: #1a581f65;
-  box-shadow: rgba(0, 0, 0, 0.25) 0 8px 15px;
+  background-color: #30313052;
+  box-shadow: rgba(0, 0, 0, 0.15) 0 8px 15px;
 }
+
 
 .close {
   float: right;

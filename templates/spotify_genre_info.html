@@ -18,10 +18,12 @@
       <p></p>
       <button class="toggle-btn" data-target="genre-{{genre}}">
       {{ genre }}
-    </button></dt>
+    </button>
+    <button class="create-playlist-btn" onclick="createPlaylist('{{ genre }}')">Create Playlist</button>
+  </dt>
     <dd id="genre-{{genre}}" class="hidden">
       <pre>
-        {% for song in sg[genre] %}
+        {% for song in sg[genre].values() %}
            <p>{{ song }}</p>
         {% endfor %}
       </pre>
@@ -30,6 +32,8 @@
 </dl>
 
 <script>
+  var songs = {{ sg | safe}}; //to get the dictionary of songs by genre
+
   document.addEventListener('DOMContentLoaded',() =>{
     const toggleButtons = document.querySelectorAll('.toggle-btn');
 
@@ -46,6 +50,26 @@
       });
     });
   });
+
+
+  function createPlaylist(playlistName) {
+    var songsByGenre = songs[playlistName]; //get songs by specific genre
+    const trackIDs = Object.keys(songsByGenre); //get track IDs to create playlist with
+
+    fetch(`/create-playlist/${playlistName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ track_ids: trackIDs }), //send track IDs to create playlist
+      }).then(response => {
+      if (response.ok) {
+        alert(`Playlist '${playlistName}' created successfully!`);
+      } else {
+        alert(`Failed to create playlist '${playlistName}'.`);
+      }
+    });
+  }
 </script>
 
 <style>
