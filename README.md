@@ -16,12 +16,11 @@ In the current state of the project, for the user to load their data, they must 
 1. email calam@wm.edu
 2. with subject line 'Access Request For Mashify'
 
-For Professor Smith:  
+**For Professor Smith:**  
 Use the Following Credentials  
 user: 31n4tj7uvibaq7tj4agfn77bxuwy  
 pass: SpotiTest123  
-
-  
+ 
 You can use these credential to login to our app as well as login to actual spotify on spotify.com to see the results  
 
 Steps required to run the program:
