@@ -20,8 +20,9 @@ Steps required to run the program:
 1. Clone the repository
 2. Use the command line to cd to the repository: `cd C:\path\to\repository`
 3. Install libraries:
-    1.  `!pip install flask` or `pip3 install flask`
-    2.  `!pip install spotipy` or `pip3 install spotipy`
+    1.  `pip install flask` or `pip3 install flask`
+    2.  `pip install spotipy` or `pip3 install spotipy`
+    3.  `pip install SQLAlchemy` or `pip3 install SQLAlchemy`
 4. `flask --app app run --debug --port 3000`
 5. Copy http url (localhost) and paste into web browser
 
