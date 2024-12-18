@@ -74,6 +74,17 @@ p {
 /* .modal-content label, .modal-content input, .modal-content button {
   margin: 10px 0;
 } */
+button {
+  padding: 5px 10px;
+  background-color: #13391d;
+  color: #b4b8ba;
+  border: none;
+  border-radius: 5px;
+  font-family: monospace;
+  font-size: 14px;
+  cursor: pointer;
+  margin: 0.5em;
+}
 
 .filter-button {
   appearance: none;
@@ -115,23 +126,31 @@ p {
   transform: translateY(0);
 }
 
-button {
-  padding: 5px 10px;
-  background-color: rgb(19, 57, 29);
-  color: #b4b8ba;
-  border: none;
+
+.toggle-btn {
+  padding: 8px 12px;
+  background-color: #193520;
+  color: #a4b5ad;
+  border: #c0ceca5e;
   border-radius: 5px;
   font-family: monospace;
   font-size: 14px;
   cursor: pointer;
-  margin: 0.5em;
+  margin: 1em;
 }
 
-.toggle-btn {
-  padding: 10px 15px;
-  background-color: #1a5a1f75;
-  color: #82998e;
-  border: #c0ceca5e;
+.toggle-btn:hover {
+  color: #e0e4e0;
+  background-color: rgb(20, 44, 26);
+  box-shadow: rgba(0, 0, 0, 0.15) 0 8px 15px;
+}
+
+.create-playlist-btn {
+  padding: 8px 12px;
+  background-color: #3e3f3e52;
+  color: #adb6b2;
+  border: #dfe4e35e;
+  border-width: 2px;
   border-radius: 5px;
   font-family: monospace;
   font-size: 12px;
@@ -139,11 +158,12 @@ button {
   margin: 1em;
 }
 
-.toggle-btn:hover {
+.create-playlist-btn:hover {
   color: #e0e4e0;
-  background-color: #1a581f65;
-  box-shadow: rgba(0, 0, 0, 0.25) 0 8px 15px;
+  background-color: #30313052;
+  box-shadow: rgba(0, 0, 0, 0.15) 0 8px 15px;
 }
+
 
 .close {
   float: right;
@@ -191,96 +211,6 @@ button {
   color: #fff;
 }
 
-
-
-  /* Hide the default checkbox appearance */
-  .checkbox-container input[type="checkbox"] {
-    display: none;
-  }
-  
-  /* Create custom checkbox style */
-  .checkbox-container {
-    display: flex;
-    align-items: center;
-  }
-  
-  .checkbox-container input[type="checkbox"] + label {
-    position: relative;
-    padding-left: 25px;
-    cursor: pointer;
-  }
-  
-  /* Custom checkbox - add border and background */
-  .checkbox-container input[type="checkbox"] + label::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 20px;
-    height: 20px;
-    border: 2px solid #ccc;
-    background-color: white;
-    border-radius: 3px;
-  }
-  
-  /* Style when checkbox is checked - Green background and border */
-  .checkbox-container input[type="checkbox"]:checked + label::before {
-    background-color: green;
-    border-color: green;
-  }
-  
-  /* Add checkmark when checked */
-  .checkbox-container input[type="checkbox"]:checked + label::after {
-    content: '✔'; /* Unicode character for checkmark */
-    position: absolute;
-    top: 0;
-    left: 3px; /* Adjust this value as needed */
-    color: black; /* Color of the checkmark */
-    font-size: 25px; /* Adjust size of the checkmark */
-  }
-  
-  /* Optional: Add hover effect */
-  .checkbox-container input[type="checkbox"]:hover + label::before {
-    border-color: #888;
-  }
-
-  .center-container {
-    display: flex;
-    flex-direction: column; /* Stack elements vertically (buttons and checkboxes) */
-    justify-content: center; /* Center content vertically */
-    align-items: center; /* Center content horizontally */ /* Make the container take the full height of the viewport */
-    text-align: center; /* Center text inside labels */
-  }
-  
-  /* Stack the filter buttons vertically and center them */
-  .filter-buttons {
-    display: flex;
-    flex-direction: column; /* Stack buttons vertically */
-    align-items: center; /* Center buttons horizontally */
-    margin-bottom: 20px; /* Add space below buttons */
-  }
-  
-  /* Ensure checkboxes and labels are stacked vertically in the center */
-  .checkbox-container {
-    display: flex;
-    flex-direction: row; /* Align checkbox and label side by side */
-    align-items: center; /* Vertically align checkbox and label */
-    justify-content: flex-start; /* Align them to the left */
-    text-align: left; /* Ensure the text inside labels is aligned to the left */
-    margin: 5px 0; /* Add space between checkboxes */
-    width: 100%; /* Take full width available */
-  }
-  
-  /* Optional: Add margin between filter buttons for spacing */
-  
-  /* Initially hide the genre sections */
-  .hidden {
-    display: none;
-  }
-  
-  .filter-button {
-    margin: 5px;
-  }
 
   
   
