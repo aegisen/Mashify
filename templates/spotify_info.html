@@ -3,7 +3,9 @@
 {% block body %}
 <h1>{% block header %} Let's make some new playlists based on your old favorites {% endblock header %}</h1>
 <body> The boxes beneath will allow you to view the songs within your songs by playlist, by artist, and by genre. </br>
-  Select your favorites, or select entire boxes to generate a playlist of your choosing! </body>
+  Select your favorites, or select entire boxes to generate a playlist of your choosing!
+</br>
+Note that you can only select songs and create playlists from one category (either Genre, Playlists, or Artists) </body>
 
 <!-- Buttons to switch between views -->
 <div>
@@ -12,6 +14,20 @@
   <button class="filter-button" onclick="window.location.href='/spotify-info/artist'">View by Artist</button>
 </div>
 
+<form id = "create-playlist-form" method="POST">
+  <div class="playlist-input">
+    <label for="playlist-name">Enter New Playlist Name: </label>
+    <input type="text" id="playlist-name" name="playlist_name" required style="width:200px" />
+  </div>
+  
+  <div>
+    <button type="submit" id="create-playlist-btn">Create Playlist</button>
+  </div>
+
+  <!-- Hidden input to store selected songs -->
+  <input type="hidden" name="selected_songs" id="selected-songs">
+</form>
+
 <dl>
   {% for playlist in ps %}
     <dt>
@@ -19,33 +35,106 @@
       <button class="toggle-btn" data-target="playlist-{{playlist.playlist_name}}">
       {{ playlist.playlist_name }}
     </button></dt>
+    <div class="center-container">
     <dd id="playlist-{{playlist.playlist_name}}" class="hidden">
-      <pre>
+      <ul>
         {% for song in sg[playlist.playlist_name] %}
-           <p>{{ song }}</p>
+        <div class="checkbox-container">
+          <input type="checkbox" name="songs" value="{{ song.id }}" id="checkbox-{{ song.name }}" class="song-checkbox">
+          <label for="checkbox-{{ song.name }}">{{ song.name }}</label>
+        </div>
+        <br>
         {% endfor %}
-      </pre>
+      </ul>
     </dd>
+  </div>
   {% endfor %}
 </dl>
 
 <script>
-  document.addEventListener('DOMContentLoaded',() =>{
-    const toggleButtons = document.querySelectorAll('.toggle-btn');
+document.addEventListener('DOMContentLoaded', () => {
+  const toggleButtons = document.querySelectorAll('.toggle-btn');
 
-    toggleButtons.forEach(button => {
-      button.addEventListener('click',() => {
-        const targetId = button.getAttribute("data-target");
-        const targetElement = document.getElementById(targetId);
+  toggleButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const targetId = button.getAttribute("data-target");
+      const targetElement = document.getElementById(targetId);
 
-        if (targetElement.classList.contains("hidden")){
-          targetElement.classList.remove("hidden");
-        } else{
-          targetElement.classList.add("hidden");
-        }
+      if (targetElement.classList.contains("hidden")) {
+        targetElement.classList.remove("hidden");
+      } else {
+        targetElement.classList.add("hidden");
+      }
+    });
+  });
+
+  // Add click event listener to all checkboxes
+  const checkboxes = document.querySelectorAll('.song-checkbox');
+  
+  checkboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', () => {
+      const songValue = checkbox.value;  // Get the song name/identifier from the checkbox value
+      
+      // Get all checkboxes with the same song value
+      const allCheckboxesForSong = document.querySelectorAll(`input[type="checkbox"][value="${songValue}"]`);
+
+      // Toggle the checked state for all checkboxes with the same value
+      allCheckboxesForSong.forEach(chk => {
+        chk.checked = checkbox.checked;
       });
     });
   });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('create-playlist-form');
+    const playlistNameInput = document.getElementById('playlist-name');
+    const songCheckboxes = document.querySelectorAll('.song-checkbox');
+    const hiddenInput = document.getElementById('selected-songs'); // Hidden input to store song IDs
+
+    form.addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent the default form submission
+
+        // Gather all checked songs
+        const selectedSongs = Array.from(songCheckboxes)
+            .filter(checkbox => checkbox.checked) // Only include checked boxes
+            .map(checkbox => checkbox.value); // Map to their values (song IDs)
+
+        // Update the hidden input with the selected songs
+        hiddenInput.value = JSON.stringify(selectedSongs);
+
+        // Log selected songs for debugging
+        console.log("Selected Songs:", selectedSongs);
+
+        // Get the playlist name from the input field
+        const playlistName = playlistNameInput.value;
+
+        // Create a data object to send as JSON
+        const data = {
+            playlistName: playlistName,
+            selectedSongs: selectedSongs
+        };
+
+        // Send the request using fetch with application/json content type
+        fetch(`/create-playlist/${playlistName}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data) // Convert data to JSON
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+            alert(data.message || 'Playlist created successfully!');
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            alert('Failed to create playlist. Please try again.');
+        });
+    });
+});
+
 </script>
 
 <style>
@@ -55,19 +144,3 @@
 </style>
 
 {% endblock body %}
-
-<!-- <dl>
-  {% for item in ar %}
-    <dt>
-      <button class="toggle-btn" data-target="artist-{{item.artist_name}}">
-      {{ item.artist_name }}
-    </button>></dt>
-    <dd id="artist-{{item.artist_name}}" class="hidden">
-      <pre>
-        {% for song in ad[item.artist_name] %}
-           <p>{{ song }}</p>
-        {% endfor %}
-      </pre>
-    </dd>
-  {% endfor %}
-</dl> -->
