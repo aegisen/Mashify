@@ -6,6 +6,19 @@ create_playlist_bp = Blueprint('spotify_bp', __name__)
 
 @create_playlist_bp.route("/create-playlist/<playlist_name>", methods=["POST"])
 def create_playlist(playlist_name):
+    """
+    Creates a new playlist on Spotify and adds selected tracks to it.
+
+    This route is responsible for handling requests to create a new playlist on Spotify.
+    It validates the user's authentication token, retrieves track information from the 
+    request, creates the playlist, and adds the selected tracks to it.
+
+    Parameters:
+        playlist_name (str): The name of the playlist to be created.
+
+    Returns:
+        Any: A JSON response indicating the success or failure of the playlist creation.
+    """
     # Validate token
     if not oauth_manager.validate_token(oauth_manager.get_cached_token()):
         return redirect("/")

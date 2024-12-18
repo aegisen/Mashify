@@ -10,6 +10,19 @@ spotify_info_bp = Blueprint('spotify_info', __name__)
 
 @spotify_info_bp.route("/spotify-info")
 def show_spotify_info():
+    """
+    Displays Spotify genre information by retrieving the user's playlists, 
+    associating songs with their respective artists, and categorizing them 
+    by genre.
+
+    This route ensures that the user has a valid session with an active 
+    Spotify token. It retrieves the user's playlists, gathers all songs 
+    from those playlists, fetches the corresponding genres for each song, 
+    and then organizes the information by genre.
+
+    Returns:
+        Any: The rendered template showing genre information with songs and their IDs.
+    """
     if not oauth_manager.validate_token(oauth_manager.get_cached_token()):
         return redirect("/")
     
@@ -186,14 +199,7 @@ def show_spotify_info():
                         db.session.rollback()
                         #print(e)
                         pass
-             
-
-                
-
-        songs[playlist_id] = songs_in_playlist
-        
-        
-
+                    
     # get info from db to display
     # create dictionary of playlists and songs
 

@@ -8,6 +8,17 @@ spotify_artist_info_bp = Blueprint('spotify_artist_info', __name__)
 
 @spotify_artist_info_bp.route("/spotify-info/artist")
 def show_spotify_info_by_artist():
+    """
+    Displays Spotify artist information by retrieving the user's playlists and 
+    associating songs with their respective artists.
+
+    This route is responsible for ensuring that the user has a valid session 
+    with an active Spotify token. It retrieves all playlists for the user, 
+    then queries the database to get songs and their corresponding artists.
+
+    Returns:
+        Any: The rendered template showing artist information with songs and their IDs.
+    """
 # Check if the user has an active session with a valid token
     if not oauth_manager.validate_token(oauth_manager.get_cached_token()):
         return redirect("/")

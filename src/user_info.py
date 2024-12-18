@@ -25,12 +25,32 @@ oauth_manager = SpotifyOAuth(
 
 # Helper functions to get Spotify information
 def get_playlist_info(playlist):
+    """
+    Extract and return important information about a playlist.
+
+    Args:
+        playlist (dict): A dictionary containing playlist information from Spotify API.
+
+    Returns:
+        Tuple[str, str, str]: A tuple containing the playlist ID, name, and snapshot ID.
+    """
     playlist_id = playlist["id"]
     playlist_name = playlist["name"]
     playlist_snapshot_id = playlist["snapshot_id"]
     return playlist_id, playlist_name, playlist_snapshot_id
 
 def get_song_info(sp, song):
+    """
+    Extract and return important information about a song.
+
+    Args:
+        sp (Spotify): The Spotify client instance.
+        song (dict): A dictionary containing song information from the Spotify API.
+
+    Returns:
+        Tuple[str, str, int, List[str], str]: A tuple containing the song ID, name, duration in ms, 
+                                               list of artist names, and release date.
+    """
     song_id = song["id"]
     song_name = song["name"]
     duration = song["duration_ms"]
@@ -39,6 +59,16 @@ def get_song_info(sp, song):
     return song_id, song_name, duration, artists, release_date
 
 def get_artist_info(sp, artist):
+    """
+    Extract and return important information about an artist.
+
+    Args:
+        sp (Spotify): The Spotify client instance.
+        artist (dict): A dictionary containing artist information from the Spotify API.
+
+    Returns:
+        Tuple[str, str, List[str]]: A tuple containing the artist ID, name, and a list of genres.
+    """
     artist_id = artist["id"]
     artist_info = sp.artist(artist_id)
     artist_name = artist_info["name"]
@@ -47,6 +77,16 @@ def get_artist_info(sp, artist):
 
 # Function to get token info
 def get_token(session):
+    """
+    Retrieve the token information from the session and validate it.
+
+    Args:
+        session (flask.Session): The Flask session object containing token information.
+
+    Returns:
+        Tuple[dict, bool]: A tuple containing the token information dictionary and a boolean indicating 
+                            whether the token is valid or not.
+    """
     token_info = session.get('token_info', {})
     authorized = False
     if token_info:
