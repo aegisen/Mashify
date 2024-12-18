@@ -23,7 +23,7 @@ Steps required to run the program:
     1.  `pip install flask` or `pip3 install flask`
     2.  `pip install spotipy` or `pip3 install spotipy`
     3.  `pip install SQLAlchemy` or `pip3 install SQLAlchemy`
-4. `flask --app src/app run --debug --port 3000`
+4. `flask --app main run --debug --port 3000`
 5. Copy http url (localhost) and paste into web browser
 
 
