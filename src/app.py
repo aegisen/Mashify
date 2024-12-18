@@ -40,7 +40,8 @@ class CacheSessionHandler(CacheHandler):
 
 # setup flask app stuff
 app = Flask(__name__,template_folder=os.path.join(os.path.dirname(__file__), '..', 'templates'),
-            instance_path=os.path.join(os.path.dirname(__file__), '..', 'instance'))
+            instance_path=os.path.join(os.path.dirname(__file__), '..', 'instance'),
+            static_folder=os.path.join(os.path.dirname(__file__), '..', 'static'))
 app.secret_key = "DEV"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 
@@ -205,7 +206,7 @@ class ArtistByGenre(db.Model):
 SCOPE = "user-read-email user-read-private playlist-read-private playlist-read-collaborative user-library-read playlist-modify-public playlist-modify-private"
 SPOITFY_CLIENT_ID = "d511528d911b44e9a81863869ee60809"
 SPOTIFY_CLIENT_SECRET = "2b40cfddb1c74814a4092114c8ffc206"
-REDIRECT_URI = "http://127.0.0.1:5000"
+REDIRECT_URI = "http://127.0.0.1:3000"
 SHOW_DIALOG = True
 
 # i might update URI later so you don't have to add /callback to end
