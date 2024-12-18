@@ -39,7 +39,9 @@ class CacheSessionHandler(CacheHandler):
 
 
 # setup flask app stuff
-app = Flask(__name__)
+app = Flask(__name__,template_folder=os.path.join(os.path.dirname(__file__), '..', 'templates'),
+            instance_path=os.path.join(os.path.dirname(__file__), '..', 'instance'),
+            static_folder=os.path.join(os.path.dirname(__file__), '..', 'static'))
 app.secret_key = "DEV"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 
