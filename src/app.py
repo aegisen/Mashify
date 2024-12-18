@@ -39,7 +39,8 @@ class CacheSessionHandler(CacheHandler):
 
 
 # setup flask app stuff
-app = Flask(__name__)
+app = Flask(__name__,template_folder=os.path.join(os.path.dirname(__file__), '..', 'templates'),
+            instance_path=os.path.join(os.path.dirname(__file__), '..', 'instance'))
 app.secret_key = "DEV"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 
@@ -690,5 +691,5 @@ def create_playlist(playlist_name):
         # Catch any error and return the error response
         print("Error during playlist creation:", str(e))
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-if __name__ == "__main__":
-    app.run(debug=True, use_reloader=True, use_debugger=True)
+#if __name__ == "__main__":
+#    app.run(debug=True, use_reloader=True, use_debugger=True)
