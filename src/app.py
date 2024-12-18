@@ -24,18 +24,7 @@ from spotipy import Spotify, CacheHandler
 from spotipy.oauth2 import SpotifyOAuth
 from sqlalchemy import select
 from src.models import db, User, Playlists, SongByPlaylist, Song, Artist, SongByArtist, Genre, ArtistByGenre
-
-class CacheSessionHandler(CacheHandler):
-    def __init__(self, session, token_key):
-        self.token_key = token_key
-        self.session = session
-
-    def get_cached_token(self):
-        return self.session.get(self.token_key)
-
-    def save_token_to_cache(self, token_info):
-        self.session[self.token_key] = token_info
-        session.modified = True
+from src.services import CacheSessionHandler, get_token
 
 
 
@@ -105,36 +94,6 @@ def callback():
     # redirect to playlist info page
     return redirect("/spotify-info")
 
-# this is just a helper function to get the token/check if it's still valid
-def get_token(session):
-    token_valid = True
-    token_info = session.get("token_info", {})
-
-    # Checking if the session already has a token stored
-    if not (session.get('token_info', False)):
-        token_valid = False
-        return token_info, token_valid
-
-    # Checking if token has expired
-    now = int(time.time())
-    is_token_expired = session.get('token_info').get('expires_at') - now < 60
-
-    # Refreshing token if it has expired
-    if (is_token_expired):
-        # Don't reuse a SpotifyOAuth object because they store token info and you could leak user tokens if you reuse a SpotifyOAuth object
-        oauth = SpotifyOAuth(
-            client_id=SPOITFY_CLIENT_ID,
-            client_secret=SPOTIFY_CLIENT_SECRET,
-            redirect_uri=REDIRECT_URI+"/callback",
-            scope=SCOPE,
-            cache_handler=CacheSessionHandler(session, "spotify_token"),
-            show_dialog=SHOW_DIALOG,
-        )
-        token_info = oauth.refresh_access_token(session.get('token_info').get('refresh_token'))
-
-    token_valid = True
-    return token_info, token_valid
-# end helper
 
 
 
@@ -163,7 +122,6 @@ def get_song_info(sp, song):
 def get_artist_info(sp, artist):
     # for artist, genre, artistByGenre
     # get artist info first, for each artist in track
-    #for artist in track["artists"]: # one song may have multiple artists
     artist_id = artist["id"]
     artist_info = sp.artist(artist_id)
 
@@ -423,9 +381,6 @@ def show_spotify_info_by_genre():
         if genre.genre_name not in genre_dict:
             genre_dict[genre.genre_name] = []
         genre_dict[genre.genre_name].append({'name': song.song_name, 'id': song.song_id})
-    
-    #for genre in list(genre_dict.keys()):
-    #    print(genre, ": ", genre_dict[genre])
 
 
     return render_template("spotify_genre_info.html", gn=list(genre_dict.keys()), sg=genre_dict)
@@ -496,18 +451,6 @@ def create_playlist(playlist_name):
     # Prevent adding duplicate titles
     track_ids = list(set(track_ids))  # Remove duplicates
     print(track_ids)
-    '''
-    track_ids = []
-    for title in titles:
-        print(f"Searching for track: {title}")
-        results = sp.search(q=title, type='track', limit=3)  # Increase limit to 3 to check for variations
-        print(f"Search Results for '{title}':", results)  # Log the search results
-
-        if results["tracks"]["items"]:
-            track_ids.append(results["tracks"]["items"][0]["id"])
-        else:
-            print(f"Track not found: {title}")
-    '''
 
     print("Track IDs to add:", track_ids)
     
@@ -535,5 +478,3 @@ def create_playlist(playlist_name):
         # Catch any error and return the error response
         print("Error during playlist creation:", str(e))
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-#if __name__ == "__main__":
-#    app.run(debug=True, use_reloader=True, use_debugger=True)
