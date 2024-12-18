@@ -1,5 +1,5 @@
 # run with
-# flask --app app run --debug --port 3000
+# flask --app app run --debug --port 5000
 
 import os
 import time
@@ -205,7 +205,7 @@ class ArtistByGenre(db.Model):
 SCOPE = "user-read-email user-read-private playlist-read-private playlist-read-collaborative user-library-read playlist-modify-public playlist-modify-private"
 SPOITFY_CLIENT_ID = "d511528d911b44e9a81863869ee60809"
 SPOTIFY_CLIENT_SECRET = "2b40cfddb1c74814a4092114c8ffc206"
-REDIRECT_URI = "http://127.0.0.1:3000"
+REDIRECT_URI = "http://127.0.0.1:5000"
 SHOW_DIALOG = True
 
 # i might update URI later so you don't have to add /callback to end
