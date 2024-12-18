@@ -26,6 +26,8 @@ Steps required to run the program:
 4. `flask --app main run --debug --port 5000`
 5. Copy http url (localhost) and paste into web browser
 
+Please view this [video](https://youtu.be/tnqCwi52IyY) for a step-by-step walkthrough on how to run the program.
+
 
 When you've loaded into the web app through your browser:
 1. Log in with your Spotify credentials
