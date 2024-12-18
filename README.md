@@ -43,7 +43,7 @@ When you've loaded into the web app through your browser:
 
 
 ## Files Included
-- [Mashify Final Report](https://drive.google.com/file/d/1_TW8LrLPcaAd9Z4jfYDBFQ_Xuh82uEou/view?usp=sharing). Contains detailed explanation of motivation, data descriptions, methods, output/functionality, future work, and contributions.
+- [Mashify Final Report](https://drive.google.com/file/d/1ComNQA-iiyx_qyYGXwdElqG7Kiurs1Ik/view?usp=sharing). Contains detailed explanation of motivation, data descriptions, methods, output/functionality, future work, and contributions.
 - `src/`: This directory contains the all of the code, including data scraping, database loading, and connection to UI. The code is documented with docstrings and comments throughout.
 - `static/`: Contains CSS stylizing files for UI, commands the design and layout of the web app.
 - `templates/`: Contains HTML files for content present in UI.
