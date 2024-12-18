@@ -12,6 +12,7 @@ from flask import (
     redirect,
     url_for,
     flash,
+    jsonify,
 )
 
 from flask_sqlalchemy import SQLAlchemy #need to install
@@ -200,7 +201,7 @@ class ArtistByGenre(db.Model):
 
 
 # setup spotify stuff
-SCOPE = "user-read-email user-read-private playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-library-read"
+SCOPE = "user-read-email user-read-private playlist-read-private playlist-read-collaborative user-library-read playlist-modify-public playlist-modify-private"
 SPOITFY_CLIENT_ID = "d511528d911b44e9a81863869ee60809"
 SPOTIFY_CLIENT_SECRET = "2b40cfddb1c74814a4092114c8ffc206"
 REDIRECT_URI = "http://127.0.0.1:3000"
@@ -327,7 +328,6 @@ def get_artist_info(sp, artist):
     return artist_id, artist_name, artist_genres
 
 # this is where we get spotify info
-# this is also where the user lands after logging in; it will be where all the user's playlist data is fetched and stored in the db
 @app.route("/spotify-info")
 def show_spotify_info():
     # if somehow didn't grab user token, redirect to login
@@ -340,6 +340,7 @@ def show_spotify_info():
     if not authorized:
         return redirect('/')
 
+    #data = request.form
     # setup spotify object so we can get our data
     sp = Spotify(auth=session.get('token_info').get('access_token'))
     songs = {}
@@ -348,7 +349,6 @@ def show_spotify_info():
     user_info = sp.me()
     user_id = user_info["id"]
 
-    # try to add user if we do not have them in db
     new_user = User(user_id = user_id)
     try:
         db.session.add(new_user)
@@ -368,11 +368,12 @@ def show_spotify_info():
 
     for offset in range(0, 1000, limit_step):
         res = sp.current_user_playlists(limit=limit_step, offset=offset)
+        #print(res)
         if len(res["items"]) == 0:
             break
         playlists.extend(res["items"])
 
-    # remove None items from playlists (not sure why they're none, smth changed w API?)
+    # remove None items from playlists (Idk why they're none, smth changed w API?)
     playlists = list(filter(lambda item: item is not None, playlists))
 
     # check db if user exists; if yes, check if playlists are up to date
@@ -385,16 +386,20 @@ def show_spotify_info():
         # get ids of playlists from spotify that are not in db
         new_playlists = [playlist for playlist in playlists if playlist["id"] not in db_playlist_ids]
         
-        # also get playlists with differing snapshot ids (those playlists have been edited since last time)
+
+        # also get playlists with differing snapshot ids
         for playlist in db_playlists:
             for new_playlist in playlists:
                 if playlist.playlist_id == new_playlist["id"]:
+                    #print(playlist.playlist_name, ": ", playlist.snapshot_id, " vs ", new_playlist["snapshot_id"])
                     if playlist.snapshot_id != new_playlist["snapshot_id"]:
                         new_playlists.append(new_playlist)
-        #print(new_playlists)
+        
+        print(new_playlists)
     
     else: # if user doesn't exist, add all playlists
         new_playlists = playlists
+
                         
     # for each new playlist, get info and add to db
     for new_playlist in new_playlists:
@@ -403,10 +408,11 @@ def show_spotify_info():
         new_playlist_entry = Playlists(playlist_id = playlist_id, playlist_name = playlist_name, user_id = user_id, snapshot_id = playlist_snapshot_id)
         
         # add to db
+
         # check if playlist already exists
         exists = db.session.query(Playlists.playlist_id).filter_by(playlist_id = playlist_id).first() is not None
         if exists:
-            # update if snapshot id is different (e.g. added a new song)
+            # update if snapshot id is different
             db_playlist = Playlists.query.filter_by(playlist_id = playlist_id).first()
             if db_playlist.snapshot_id != playlist_snapshot_id:
                 db_playlist.snapshot_id = playlist_snapshot_id
@@ -428,6 +434,7 @@ def show_spotify_info():
         while results["next"]:
             results = sp.next(results)
             tracks.extend(results["items"])
+        
 
         if len(tracks) == 0:
             continue
@@ -504,9 +511,12 @@ def show_spotify_info():
                         db.session.commit()
                     except exc.SQLAlchemyError as e:
                         db.session.rollback()
-                        print(e)
+                        #print(e)
                         pass
              
+
+                
+
         songs[playlist_id] = songs_in_playlist
         
         
@@ -514,76 +524,18 @@ def show_spotify_info():
     # get info from db to display
     # create dictionary of playlists and songs
 
-    # get all playlists from the current user
-    playlists = Playlists.query.filter_by(user_id=user_id).all()
-    playlist_ids = [playlist.playlist_id for playlist in playlists]
+    # fetch playlists names, playlist ids from db
+    playlists = Playlists.query.filter_by(user_id = user_id).all()
+    songs_by_playlist = db.session.query(SongByPlaylist, Song).join(Song, Song.song_id == SongByPlaylist.song_id).all()
 
-    # join with songByPlaylist where playlist ID matches
-    songs_by_playlist = db.session.query(SongByPlaylist, Song).join(
-        Song, Song.song_id == SongByPlaylist.song_id).filter(
-        SongByPlaylist.playlist_id.in_(playlist_ids)).all()
-
-    # make a dictionary with playlist names as keys and dictionaries of song_id:song_name as values
-        # the song_id:song_name dictionary is so we can pass the id back to create playlists with (and not have to query db again)
     playlist_dict = {}
     for playlist in playlists:
-        playlist_dict[playlist.playlist_name] = {song.song_id: song.song_name for song_by_playlist, song in songs_by_playlist if song_by_playlist.playlist_id == playlist.playlist_id}
+        playlist_dict[playlist.playlist_name] = [{"name":song.song_name,"id":song.song_id} for song_by_playlist, song in songs_by_playlist if song_by_playlist.playlist_id == playlist.playlist_id]
 
-   # print(playlist_dict)
-    return render_template("spotify_info.html", ps=list(playlist_dict.keys()), sg=playlist_dict)
+    return render_template("spotify_info.html", ps=playlists, sg = playlist_dict)
 
-
-# this is where users go when they click the View By Genre button
 @app.route("/spotify-info/genre")
 def show_spotify_info_by_genre():
-    # if somehow didn't grab user token, redirect to login
-    if not oauth_manager.validate_token(oauth_manager.get_cached_token()):
-        return redirect("/")
-
-    # set our session info
-    session['token_info'], authorized = get_token(session)
-    session.modified = True
-    if not authorized:
-        return redirect('/')
-
-    # setup spotify object so we can get our data
-    sp = Spotify(auth=session.get('token_info').get('access_token'))
-    user_id = sp.me()["id"]
-
-   # get all playlists from the current user
-    playlists = Playlists.query.filter_by(user_id=user_id).all()
-    playlist_ids = [playlist.playlist_id for playlist in playlists]
-
-    # join with SongByPlaylist where playlist ID matches
-    songs_by_playlist = db.session.query(SongByPlaylist, Song, Artist).join(
-        Song, Song.song_id == SongByPlaylist.song_id).join(
-        SongByArtist, Song.song_id == SongByArtist.song_id).join(
-        Artist, Artist.artist_id == SongByArtist.artist_id).filter(
-        SongByPlaylist.playlist_id.in_(playlist_ids)).all()
-
-    # also track song IDs to get genre info
-    songs_by_playlists_ids = [song_by_playlist.song_id for song_by_playlist, song, artist in songs_by_playlist]
-
-    # get genre info by connecting with artist and artistByGenre
-    songs_by_genre = db.session.query(Song, Artist, Genre).join(
-        SongByArtist, Song.song_id == SongByArtist.song_id).join(
-        Artist, Artist.artist_id == SongByArtist.artist_id).join(
-        ArtistByGenre, Artist.artist_id == ArtistByGenre.artist_id).join(
-        Genre, Genre.genre_id == ArtistByGenre.genre_id).filter(
-        Song.song_id.in_(songs_by_playlists_ids)).all()
-
-    # make a dictionary with genre names as keys and dicts of song_id:song_name as values
-    genre_dict = {}
-    for song, artist, genre in songs_by_genre:
-        if genre.genre_name not in genre_dict:
-            genre_dict[genre.genre_name] = {}
-        genre_dict[genre.genre_name][song.song_id] = song.song_name
-
-    return render_template("spotify_genre_info.html", gn=list(genre_dict.keys()), sg=genre_dict)
-
-# this is where users go when they click the View By Artist button
-@app.route("/spotify-info/artist")
-def show_spotify_info_by_artist():
     # if somehow didn't grab user token, redirect to login
     if not oauth_manager.validate_token(oauth_manager.get_cached_token()):
         return redirect("/")
@@ -599,64 +551,144 @@ def show_spotify_info_by_artist():
     
     user_id = sp.me()["id"]
 
-    # get all playlists from the current user
+   # Query all playlists from the current user
     playlists = Playlists.query.filter_by(user_id=user_id).all()
     playlist_ids = [playlist.playlist_id for playlist in playlists]
 
-    # join with songByPlaylist where playlist ID matches (getting song and artist info for user's songs)
+    # Join with SongByPlaylist where playlist ID matches
     songs_by_playlist = db.session.query(SongByPlaylist, Song, Artist).join(
         Song, Song.song_id == SongByPlaylist.song_id).join(
         SongByArtist, Song.song_id == SongByArtist.song_id).join(
         Artist, Artist.artist_id == SongByArtist.artist_id).filter(
         SongByPlaylist.playlist_id.in_(playlist_ids)).all()
 
-    # make a dictionary with artist names as keys and dict of song_id:song_name as values
-    artist_dict = {}
-    for song_by_playlist, song, artist in songs_by_playlist:
-        if artist.artist_name not in artist_dict:
-            artist_dict[artist.artist_name] = {}
-        artist_dict[artist.artist_name][song.song_id] = song.song_name
+    songs_by_playlists_ids = [song_by_playlist.song_id for song_by_playlist, song, artist in songs_by_playlist]
+
+    # Get genre info by connecting with Artist and ArtistByGenre
+    songs_by_genre = db.session.query(Song, Artist, Genre).join(
+        SongByArtist, Song.song_id == SongByArtist.song_id).join(
+        Artist, Artist.artist_id == SongByArtist.artist_id).join(
+        ArtistByGenre, Artist.artist_id == ArtistByGenre.artist_id).join(
+        Genre, Genre.genre_id == ArtistByGenre.genre_id).filter(
+        Song.song_id.in_(songs_by_playlists_ids)).all()
+
+    # Create a dictionary with genre names as keys and lists of song names as values
+    genre_dict = {}
+    for song, artist, genre in songs_by_genre:
+        if genre.genre_name not in genre_dict:
+            genre_dict[genre.genre_name] = []
+        genre_dict[genre.genre_name].append({'name': song.song_name, 'id': song.song_id})
+    
+    #for genre in list(genre_dict.keys()):
+    #    print(genre, ": ", genre_dict[genre])
 
 
-    return render_template("spotify_artist_info.html", ar=list(artist_dict.keys()), sg=artist_dict)
+    return render_template("spotify_genre_info.html", gn=list(genre_dict.keys()), sg=genre_dict)
 
-# this is what handles the create playlist button
-@app.route("/create-playlist/<playlist_name>", methods=["POST"])
-def create_playlist(playlist_name):
-    # if somehow didn't grab user token, redirect to login
+
+@app.route("/spotify-info/artist")
+def show_spotify_info_by_artist():
+# Check if the user has an active session with a valid token
     if not oauth_manager.validate_token(oauth_manager.get_cached_token()):
         return redirect("/")
 
-    # set our session info
+    # Set session info with token
     session['token_info'], authorized = get_token(session)
     session.modified = True
     if not authorized:
         return redirect('/')
 
-    # setup spotify object so we can get our data
+    # Setup Spotify object for API calls
     sp = Spotify(auth=session.get('token_info').get('access_token'))
+    
     user_id = sp.me()["id"]
 
-    # get the track IDs from the request (from html page)
+    # Query all playlists for the current user
+    playlists = Playlists.query.filter_by(user_id=user_id).all()
+    playlist_ids = [playlist.playlist_id for playlist in playlists]
+
+    # Join tables to get the songs and their corresponding artists
+    songs_by_playlist = db.session.query(SongByPlaylist, Song, Artist).join(
+        Song, Song.song_id == SongByPlaylist.song_id).join(
+        SongByArtist, Song.song_id == SongByArtist.song_id).join(
+        Artist, Artist.artist_id == SongByArtist.artist_id).filter(
+        SongByPlaylist.playlist_id.in_(playlist_ids)).all()
+
+    # Create a dictionary with artist names as keys and lists of song names and IDs as values
+    artist_dict = {}
+    for song_by_playlist, song, artist in songs_by_playlist:
+        if artist.artist_name not in artist_dict:
+            artist_dict[artist.artist_name] = []
+        # Add the song's name and ID as a dictionary in the list
+        if not any(existing_song['id'] == song.song_id for existing_song in artist_dict[artist.artist_name]):
+            artist_dict[artist.artist_name].append({'name': song.song_name, 'id': song.song_id})
+
+    # Debugging: check the structure of the artist_dict
+
+    return render_template("spotify_artist_info.html", ar=list(artist_dict.keys()), ad=artist_dict)
+
+@app.route("/create-playlist/<playlist_name>", methods=["POST"])
+def create_playlist(playlist_name):
+ # Validate token
+    if not oauth_manager.validate_token(oauth_manager.get_cached_token()):
+        return redirect("/")
+
+    # Get session token info
+    session['token_info'], authorized = get_token(session)
+    session.modified = True
+    if not authorized:
+        return redirect('/')
+
+    # Setup Spotify client with the user's token
+    sp = Spotify(auth=session.get('token_info').get('access_token'))
+    user_id = sp.current_user()["id"]
+
+    # Get the track data from the request
     data = request.get_json()
-    track_ids = data.get('track_ids', [])
-    #print(track_ids)
+    print("Request Data:", data)
+    track_ids = data.get('selectedSongs', [])  # Extract track titles
 
-    # create a new playlist on Spotify
-    new_playlist = sp.user_playlist_create(user=user_id, name=playlist_name)
+    # Prevent adding duplicate titles
+    track_ids = list(set(track_ids))  # Remove duplicates
+    print(track_ids)
+    '''
+    track_ids = []
+    for title in titles:
+        print(f"Searching for track: {title}")
+        results = sp.search(q=title, type='track', limit=3)  # Increase limit to 3 to check for variations
+        print(f"Search Results for '{title}':", results)  # Log the search results
 
-    # get playlist that we just made
-    playlists = sp.user_playlists(user_id)
-    new_playlist = list(playlists['items'])[0]
-    new_playlist_id = new_playlist["id"] # get the id of the new playlist so we can edit it
+        if results["tracks"]["items"]:
+            track_ids.append(results["tracks"]["items"][0]["id"])
+        else:
+            print(f"Track not found: {title}")
+    '''
 
-    # setup track ids to pass through spotipy (spotify api formatting)
-    tracklist = ["spotify:track:" + track for track in track_ids]
+    print("Track IDs to add:", track_ids)
+    
+    # If no tracks are found, return an error
+    if not track_ids:
+        return jsonify({"error": "No valid tracks found"}), 400
 
-    # add tracks to the new playlist
-    sp.user_playlist_add_tracks(user=user_id, playlist_id=new_playlist_id, tracks=tracklist)
+    try:
+        # Create the new playlist on Spotify
+        new_playlist = sp.user_playlist_create(user=user_id, name=playlist_name, public=False)
+        new_playlist_id = new_playlist["id"]
+        print("New Playlist ID:", new_playlist_id)  # Debug log
 
-    return "Playlist created", 200
+        # Format track IDs to Spotify URI format
+        tracklist = [f"spotify:track:{track}" for track in track_ids]
+        print("Tracklist to be added:", tracklist)  # Debug log
 
+        # Add tracks to the newly created playlist
+        response = sp.user_playlist_add_tracks(user=user_id, playlist_id=new_playlist_id, tracks=tracklist)
+        print("Add Tracks Response:", response)  # Debug log
+
+        # Return a success message
+        return jsonify({"message": f"Playlist '{playlist_name}' created successfully!"}), 200
+    except Exception as e:
+        # Catch any error and return the error response
+        print("Error during playlist creation:", str(e))
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 if __name__ == "__main__":
     app.run(debug=True, use_reloader=True, use_debugger=True)
