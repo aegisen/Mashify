@@ -21,6 +21,9 @@ Use the Following Credentials
 user: 31n4tj7uvibaq7tj4agfn77bxuwy  
 pass: SpotiTest123  
 
+  
+You can use these credential to login to our app as well as login to actual spotify on spotify.com to see the results  
+
 Steps required to run the program:
 1. Clone the repository
 2. Use the command line to cd to the repository: `cd C:\path\to\repository`
