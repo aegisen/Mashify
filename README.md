@@ -3,10 +3,12 @@
 ## Introduction
 Let's say you are an avid Spotify user who has downloaded a large number of songs via playlists and albums. You want to make a new playlist called, for example, *dance*. However, you don't want to spend tons of time scouring through your playlists and albums to find all the songs that fit the new playlist. In this case, your best option is to use **Mashify**, a new app designed to help you create playlists by a set number of criteria.
 
+
 ## Overview
 The app presents a UI capable of acting as a filter for a user's Spotify library. The final product allows the user to connect their Spotify account using the Spotify API, load their personal data into an SQLAlchemy database, and use the UI to filter their data by three criteria: artist, genre, and original playlist (within their own library). After doing so, the user may manually select and remove songs that were returned by the filter. When satisfied, the user may click "create playlist," give it a title, and within a few minutes, the new playlist should appear in your Spotify library.
 
 To load your Spotify data, follow the instructions below!
+
 
 ## Getting Started
 
@@ -22,6 +24,7 @@ Steps required to run the program:
     2.  `!pip install spotipy` or `pip3 install spotipy`
 4. `flask --app app run --debug --port 3000`
 5. Copy http url (localhost) and paste into web browser
+
 
 When you've loaded into the web app through your browser:
 1. Log in with your Spotify credentials
